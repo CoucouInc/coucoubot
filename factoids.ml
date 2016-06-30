@@ -34,37 +34,44 @@ let coucoubot_git : Git.User.t = User.{
 
 (* Reading/Writing from/to a git store *)
 let read_factoids_data store =
-  Store.read_reference_exn store Reference.master >>= fun head ->
-  Search_mem.find store head (`Commit (`Path [file])) >>= function
-  | None -> failwith (file ^ " not found")
-  | Some sha -> Store.read_exn store sha >>= function
-    | Value.Blob b -> Lwt.return (Blob.to_raw b)
-    | _ -> failwith "not a valid path"
+  Store.read_reference store Reference.master >>= function
+  | None -> Lwt.return None
+  | Some head ->
+    MySearch.find store head (`Commit (`Path [file])) >>= function
+    | None -> failwith (file ^ " not found")
+    | Some sha -> Store.read_exn store sha >>= function
+      | Value.Blob b -> Lwt.return (Some (Blob.to_raw b))
+      | _ -> failwith "not a valid path"
 
 let write_factoids_data store msg data =
-  Store.read_reference_exn store Reference.master >>= fun head_hash ->
-  Store.read_exn store head_hash >>= function
-  | Value.Commit head ->
-    Store.read_exn store (Hash.of_tree head.Commit.tree) >>= (function
-    | Value.Tree old_tree -> 
-      let new_blob = Value.Blob (Blob.of_raw data) in
-      Store.write store new_blob >>= fun new_blob_hash ->
-      let new_tree = Value.Tree (
-          Tree.{perm = `Normal; name = file; node = new_blob_hash} ::
-          List.filter (fun {Tree.name; _} -> name <> file) old_tree
-        ) in
-      Store.write store new_tree >>= fun new_tree_hash ->
-      let new_commit = Value.Commit (Commit.{
-        tree = Hash.to_tree new_tree_hash;
-        parents = [Hash.to_commit head_hash];
-        author = coucoubot_git;
-        committer = coucoubot_git;
-        message = msg;
-      }) in
-      Store.write store new_commit >>= fun new_commit_hash ->
-      Store.write_reference store Reference.master new_commit_hash
-    | _ -> failwith "not a valid tree")
-  | _ -> failwith "not a valid commit"
+  Store.read_reference store Reference.master >>= fun head_opt ->
+  begin match head_opt with
+    | None -> Lwt.return ([], [])
+    | Some head_hash ->
+      Store.read_exn store head_hash >>= function
+      | Value.Commit head ->
+        Store.read_exn store (Hash.of_tree head.Commit.tree) >>= (function
+            | Value.Tree old_tree -> 
+              Lwt.return (old_tree, [Hash.to_commit head_hash])
+            | _ -> failwith "not a valid tree")
+      | _ -> failwith "not a valid commit"
+  end >>= fun (old_tree, parents) ->
+  let new_blob = Value.Blob (Blob.of_raw data) in
+  Store.write store new_blob >>= fun new_blob_hash ->
+  let new_tree = Value.Tree (
+      Tree.{perm = `Normal; name = file; node = new_blob_hash} ::
+      List.filter (fun {Tree.name; _} -> name <> file) old_tree
+    ) in
+  Store.write store new_tree >>= fun new_tree_hash ->
+  let new_commit = Value.Commit (Commit.{
+      tree = Hash.to_tree new_tree_hash;
+      parents;
+      author = coucoubot_git;
+      committer = coucoubot_git;
+      message = msg;
+    }) in
+  Store.write store new_commit >>= fun new_commit_hash ->
+  Store.write_reference store Reference.master new_commit_hash
 
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: Yojson.Safe.json): factoid list option =
@@ -102,8 +109,9 @@ let store : Store.t Lwt.t =
 (* operations *)
 
 let factoids (store: Store.t) : factoid list Lwt.t =
-  read_factoids_data store >|= fun data ->
-  parse_factoids data |? []
+  read_factoids_data store >|= function
+  | None -> []
+  | Some data -> parse_factoids data |? []
 
 let write_factoids msg (fs: factoid list) : unit Lwt.t =
   store >>= fun store ->
