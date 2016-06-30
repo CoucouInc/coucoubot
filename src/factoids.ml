@@ -123,3 +123,22 @@ let write_file ~file (fs: t) : unit Lwt.t =
   in
   Lwt_log.ign_debug_f "move `%s` into `%s` with `%s`" file' file cmd;
   Lwt_unix.system cmd >|= fun _ -> ()
+
+(* state *)
+
+module St = struct
+  let state = ref empty
+
+  let get k = get k !state
+  let set f = state := set f !state
+  let append f = state := append f !state
+
+  let reload () =
+    read_file ~file:Config.factoids_file >|= fun fs ->
+    state := fs;
+    ()
+
+  let save () =
+    write_file ~file:Config.factoids_file !state
+
+end

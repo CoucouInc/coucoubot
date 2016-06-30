@@ -28,26 +28,22 @@ let () =
     match Factoids.parse_op msg.Core.message with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
-      (match Factoids.get k !Core.factoids with
-       | [] -> Lwt.return ()
-       | [message] ->
-         Irc.send_privmsg ~connection ~target:Config.channel ~message
-       | l ->
-         let message = DistribM.uniform l |> DistribM.run in
-         Irc.send_privmsg ~connection ~target:Config.channel ~message
-      )
+      begin match Factoids.St.get k with
+        | [] -> Lwt.return ()
+        | [message] ->
+          Irc.send_privmsg ~connection ~target:Config.channel ~message
+        | l ->
+          let message = DistribM.uniform l |> DistribM.run in
+          Irc.send_privmsg ~connection ~target:Config.channel ~message
+      end
     | Some (Factoids.Set f) ->
-      Core.factoids := Factoids.set f !Core.factoids;
+      Factoids.St.set f;
       Lwt.return_unit
     | Some (Factoids.Append f) ->
-      Core.factoids := Factoids.append f !Core.factoids;
+      Factoids.St.append f;
       Lwt.return_unit
-    | Some Factoids.Reload ->
-      Factoids.read_file ~file:Config.factoids_file >>= fun fs ->
-      Core.factoids := fs;
-      Lwt.return_unit
-    | Some Factoids.Save ->
-      Factoids.write_file ~file:Config.factoids_file !Core.factoids
+    | Some Factoids.Reload -> Factoids.St.reload ()
+    | Some Factoids.Save -> Factoids.St.save ()
   )
 
 (* on_join, on_nick *)

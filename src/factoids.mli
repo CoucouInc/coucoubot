@@ -25,3 +25,12 @@ val append : factoid -> t -> t
 val read_file : file:string -> t Lwt.t
 val write_file : file:string -> t -> unit Lwt.t
 
+(* stateful *)
+
+module St : sig
+  val get : key -> value list
+  val set : factoid -> unit
+  val append : factoid -> unit
+  val reload : unit -> unit Lwt.t
+  val save : unit -> unit Lwt.t
+end
