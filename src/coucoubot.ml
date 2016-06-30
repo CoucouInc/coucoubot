@@ -17,7 +17,7 @@ let () = Signal.on' Core.privmsg (fun msg ->
     if Str.string_match cmd msg.Core.message 0 then
       let after = Str.string_after msg.Core.message (Str.match_end ()) in
       Core.connection >>= fun connection ->
-      f connection msg.Core.channel msg.Core.nick after
+      f connection (Core.reply_to msg) msg.Core.nick after
     else Lwt.return ()
   ) Commands.commands)
 
@@ -25,7 +25,7 @@ let () = Signal.on' Core.privmsg (fun msg ->
 let () =
   Signal.on' Core.privmsg (fun msg ->
     Core.connection >>= fun connection ->
-    let target = msg.Core.channel in
+    let target = Core.reply_to msg in
     match Factoids.parse_op msg.Core.message with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->

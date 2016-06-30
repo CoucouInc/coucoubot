@@ -28,10 +28,10 @@ let tell (_: Irc.connection_t) channel nick s =
 let refcmds = ref []
 let refcmdNames = ref []
 
-let listCommands connection _channel nick _s =
+let listCommands connection target nick _s =
   let str = ref "" in
   List.iter (fun (cmd, _) -> str := !str ^ cmd ^ " ") !refcmdNames;
-  Irc.send_privmsg ~connection ~target:Config.channel
+  Irc.send_privmsg ~connection ~target
     ~message:(nick ^ ": "^ String.trim !str)
 
 let trigger = "!"

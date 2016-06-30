@@ -13,17 +13,22 @@ let _connection =
 let init, send_init = Lwt.wait ()
 
 type privmsg = {
-  nick: string;
-  channel: string;
+  nick: string; (* author *)
+  to_: string; (* target *)
   message: string;
 }
 
+let reply_to msg =
+  if msg.to_.[0] = '#'
+  then msg.to_ (* on a channel *)
+  else msg.nick (* in pv *)
+
 let privmsg_of_msg msg =
   match msg.Msg.command with
-  | Msg.PRIVMSG (channel, message) ->
+  | Msg.PRIVMSG (to_, message) ->
     Some
       { nick = get_some msg.Msg.prefix |> get_nick;
-        channel;
+        to_;
         message }
   | _ -> None
 

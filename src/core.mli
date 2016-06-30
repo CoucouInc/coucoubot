@@ -6,10 +6,13 @@ val messages : Irc_message.t Signal.t
 val messages_stream : Irc_message.t Lwt_stream.t
 
 type privmsg = {
-  nick: string;
-  channel: string;
+  nick: string; (* author *)
+  to_: string; (* target *)
   message: string;
 }
+
+val reply_to : privmsg -> string
+(** find whom to reply to *)
 
 val privmsg_of_msg : Irc_message.t -> privmsg option
 
