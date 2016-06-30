@@ -1,7 +1,6 @@
-- opam install lwt irc-client ssl conduit camlzip git yojson
+- opam install lwt irc-client yojson
 - configurer/hacker en lisant `coucoubot.ml`, `commands.ml`
 - make
-- git init factoids
 - ./coucoubot.native
 - coucou
 
