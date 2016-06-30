@@ -49,9 +49,10 @@ let write_factoids_data store msg data =
     | Value.Tree old_tree -> 
       let new_blob = Value.Blob (Blob.of_raw data) in
       Store.write store new_blob >>= fun new_blob_hash ->
-      let new_tree = Value.Tree [
-          Tree.{perm = `Normal; name = file; node = new_blob_hash}
-        ] in
+      let new_tree = Value.Tree (
+          Tree.{perm = `Normal; name = file; node = new_blob_hash} ::
+          List.filter (fun {Tree.name; _} -> name <> file) old_tree
+        ) in
       Store.write store new_tree >>= fun new_tree_hash ->
       let new_commit = Value.Commit (Commit.{
         tree = Hash.to_tree new_tree_hash;
