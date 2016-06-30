@@ -1,0 +1,30 @@
+opam-version: "1.2"
+name: "coucoubot"
+version: "dev"
+author: "Armael"
+maintainer: "Armael"
+build: [
+    [make "build"]
+]
+install: [
+    [make "install"]
+]
+build-doc: [ make "doc" ]
+build-test: [ make "test" ]
+remove: [
+    ["rm" "%{bin}%/coucoubot"]
+]
+depends: [
+    "ocamlfind" {build}
+    "base-bytes"
+    "base-unix"
+    "conduit"
+    "cohttp"
+    "camlzip"
+    "nocrypto"
+]
+tags: [ "coucou" "aop" ]
+homepage: "https://github.com/CoucouInc/coucoubot"
+bug-reports: "https://github.com/CoucouInc/coucoubot/issues"
+dev-repo: "https://github.com/CoucouInc/coucoubot"
+
