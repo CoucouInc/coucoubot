@@ -4,7 +4,7 @@ le bot qui fait «coucou!»
 
 ## Build
 
-- `opam install lwt irc-client yojson containers`
+- `opam install lwt irc-client yojson containers sequence`
 - configurer/hacker en lisant `src/coucoubot.ml`, `src/commands.ml`
 - `make`
 - `./coucoubot.native`
