@@ -9,6 +9,6 @@ type op =
   | Write of factoid
 
 val parse_op : string -> op option
-val read : key -> value
-val write : factoid -> unit
+val read : key -> value option Lwt.t
+val write : factoid -> unit Lwt.t
 
