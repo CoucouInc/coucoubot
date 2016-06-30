@@ -15,7 +15,7 @@ type op =
 
 let key_of_string s =
   let k = s |> String.trim |> CCString.lowercase_ascii in
-  if String.index k ' ' >= 0 then None
+  if String.contains k ' ' then None
   else Some k
 
 let mk_factoid key value = {key; value=[value]}
@@ -144,4 +144,10 @@ module St = struct
     state := fs;
     ()
 
+  (* load at init time *)
+  let () =
+    Lwt.on_success Core.init
+      (fun () ->
+         print_endline "load initial factoids file...";
+         Lwt.async reload)
 end

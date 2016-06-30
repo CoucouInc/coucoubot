@@ -2,13 +2,15 @@ open Prelude
 
 let _connection =
   let open Config in
-  Irc.connect_by_name 
+  Irc.connect_by_name
     ~username ~realname ~nick
     ~server ~port
     ()
   >>= (function
     | Some c -> Lwt.return c
     | None -> failwith "Bad server address")
+
+let init, send_init = Lwt.wait ()
 
 type privmsg = {
   nick: string;
@@ -30,7 +32,7 @@ let privmsg = Signal.filter_map messages privmsg_of_msg
 
 let messages_stream, push_message = Lwt_stream.create ()
 let privmsg_stream = Lwt_stream.filter_map privmsg_of_msg messages_stream
-    
+
 let main =
   _connection >>= fun connection ->
   Irc.listen ~connection
@@ -40,11 +42,7 @@ let main =
       | `Error err -> Printf.eprintf "%s\n%!" err; Lwt.return ()) >>= fun () ->
   Irc.send_quit ~connection
 
-
-let factoids = ref Factoids.empty
-
 let connection =
   _connection >>= fun conn ->
-  Factoids.read_file ~file:Config.factoids_file >>= fun fs ->
-  factoids := fs;
+  Lwt.wakeup send_init ();
   Lwt.return conn
