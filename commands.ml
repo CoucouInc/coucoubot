@@ -39,6 +39,7 @@ let trigger = "!"
 (* Liste des commandes : ajoutez les votres ici
    (couples nom/fonction, séparées par des ;) *)
 let commandNames = [
+  "help", listCommands;
   "tell", tell;
 ]
 
