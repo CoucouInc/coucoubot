@@ -20,11 +20,10 @@ let parse_op msg =
   failwith "todo"
 
 
-module Store = Memory
-module Sync_mem = Sync.Make(Store)
-module Search_mem = Git.Search.Make(Store)
+module Store = FS
+module MySearch = Git.Search.Make(Store)
 
-let repo_uri = Git.Gri.of_string "git@github.com:CoucouInc/factoids.git"
+let local_repo_dir = "factoids"
 let file = "factoids.json"
 let coucoubot_git : Git.User.t = User.{
   name = "coucoubot";
@@ -102,8 +101,7 @@ let dump_factoids (factoids: factoid list): string =
 (* state of the module *)
 
 let store : Store.t Lwt.t =
-  Store.create () >>= fun store ->
-  Sync_mem.clone store ~checkout:false repo_uri >>= fun _ ->
+  Store.create ~root:local_repo_dir () >>= fun store ->
   Lwt.return store
 
 (* operations *)
@@ -119,7 +117,6 @@ let write_factoids msg (fs: factoid list) : unit Lwt.t =
 
 let read (key: key): value option Lwt.t =
   store >>= fun store ->
-  Sync_mem.fetch store repo_uri >>= fun _ ->
   factoids store >>= fun fs ->
   try List.find (fun {key = key'; _} -> key' = key) fs
       |> fun {value; _} -> Lwt.return (Some value)
@@ -129,6 +126,4 @@ let write (f: factoid): unit Lwt.t =
   store >>= fun store ->
   factoids store >>= fun fs ->
   write_factoids (Printf.sprintf "add/update factoid %s" f.key)
-    (f :: List.filter (fun f' -> f'.key <> f.key) fs) >>= fun () ->
-  Sync_mem.push store ~branch:Reference.master repo_uri >>= fun _ ->
-  Lwt.return ()
+    (f :: List.filter (fun f' -> f'.key <> f.key) fs)

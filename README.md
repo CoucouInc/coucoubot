@@ -1,6 +1,7 @@
 - opam install lwt irc-client
 - configurer/hacker en lisant `coucoubot.ml`, `commands.ml`
 - make
+- git init factoids
 - ./coucoubot.native
 - coucou
 
