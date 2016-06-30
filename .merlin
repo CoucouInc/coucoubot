@@ -2,3 +2,5 @@ B _build
 PKG irc-client.lwt
 PKG str
 PKG num
+PKG git
+PKG yojson
