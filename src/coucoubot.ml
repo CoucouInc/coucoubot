@@ -28,11 +28,17 @@ let () = Signal.on' Core.privmsg (fun msg ->
     | None -> Lwt.return ()
     | Some (Factoids.Read k) ->
       (Factoids.read k >>= function
-       | None -> Lwt.return ()
-       | Some message ->
-         Irc.send_privmsg ~connection ~target:Config.channel ~message)
+       | None | Some [] -> Lwt.return ()
+       | Some [message] ->
+         Irc.send_privmsg ~connection ~target:Config.channel ~message
+       | Some l ->
+         let message = DistribM.uniform l |> DistribM.run in
+         Irc.send_privmsg ~connection ~target:Config.channel ~message
+      )
     | Some (Factoids.Write f) ->
       Factoids.write f
+    | Some (Factoids.Append f) ->
+      Factoids.append f
   )
 
 (* on_join, on_nick *)

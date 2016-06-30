@@ -18,6 +18,8 @@ let (|?) o x = match o with
   | None -> x
   | Some y -> y
 
+let (<+>) o1 o2 = match o1 with None -> o2 | Some _ -> o1
+
 let contains s x =
   try Str.search_forward x s 0 |> ignore; true with
     Not_found -> false
@@ -35,6 +37,8 @@ let select l = DistribM.run @@ DistribM.uniform l
 let id x = x
 let uncurry f (x, y) = f x y
 
+module StrMap = Map.Make(String)
+
 include Lwt.Infix
 module Msg = Irc_message
 module Irc = struct
@@ -44,7 +48,7 @@ module Irc = struct
 
   (* Permet d'envoyer des messages multilignes *)
   let send_privmsg ~connection ~target ~message =
-    Lwt_list.iter_s 
+    Lwt_list.iter_s
       (fun message -> Irc_client_lwt.send_privmsg ~connection ~target ~message)
       (Str.split nl message)
-end 
+end
