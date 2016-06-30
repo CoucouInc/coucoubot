@@ -54,11 +54,14 @@ let parse_op msg : op option =
 
 (* read the json file *)
 let read_json (file:string) : json option Lwt.t =
-  Lwt_io.with_file ~mode:Lwt_io.input file
-    (fun ic ->
-       Lwt_io.read ic >|= fun s ->
-       try Yojson.Safe.from_string s |> some
-       with _ -> None)
+  Lwt.catch
+    (fun () ->
+       Lwt_io.with_file ~mode:Lwt_io.input file
+         (fun ic ->
+            Lwt_io.read ic >|= fun s ->
+            try Yojson.Safe.from_string s |> some
+            with _ -> None))
+    (fun _ -> Lwt.return_none)
 
 exception Could_not_parse
 
