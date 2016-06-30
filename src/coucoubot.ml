@@ -25,27 +25,28 @@ let () = Signal.on' Core.privmsg (fun msg ->
 let () =
   Signal.on' Core.privmsg (fun msg ->
     Core.connection >>= fun connection ->
+    let target = msg.Core.channel in
     match Factoids.parse_op msg.Core.message with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
       begin match Factoids.St.get k with
         | [] ->
-          Irc.send_privmsg ~connection ~target:Config.channel ~message:"nope :-("
+          Irc.send_privmsg ~connection ~target ~message:"nope :-("
         | [message] ->
-          Irc.send_privmsg ~connection ~target:Config.channel ~message
+          Irc.send_privmsg ~connection ~target ~message
         | l ->
           let message = DistribM.uniform l |> DistribM.run in
-          Irc.send_privmsg ~connection ~target:Config.channel ~message
+          Irc.send_privmsg ~connection ~target ~message
       end
     | Some (Factoids.Set f) ->
       Factoids.St.set f >>= fun () ->
-      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
+      Irc.send_privmsg ~connection ~target ~message:"done."
     | Some (Factoids.Append f) ->
       Factoids.St.append f >>= fun () ->
-      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
+      Irc.send_privmsg ~connection ~target ~message:"done."
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () ->
-      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
+      Irc.send_privmsg ~connection ~target ~message:"done."
   )
 
 (* on_join, on_nick *)
