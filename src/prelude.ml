@@ -37,7 +37,7 @@ let select l = DistribM.run @@ DistribM.uniform l
 let id x = x
 let uncurry f (x, y) = f x y
 
-module StrMap = Map.Make(String)
+module StrMap = CCMap.Make(String)
 
 include Lwt.Infix
 module Msg = Irc_message

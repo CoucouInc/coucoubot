@@ -1,4 +1,8 @@
 open Prelude
+open Containers
+
+module J = Yojson.Basic.Util
+type json = Yojson.Basic.json
 
 (* Data for contacts *)
 type contact = {
@@ -8,6 +12,56 @@ type contact = {
                     * string (* message    *)
                    ) list;
 }
+
+exception Bad_json
+
+let contact_of_json (json: json): contact option =
+  let member k =
+    match J.member k json with
+    | `Null -> raise Bad_json
+    | v -> v in
+  try
+    { lastSeen = member "lastSeen" |> J.to_float;
+      to_tell =
+        member "to_tell"
+        |> J.convert_each (fun j ->
+          match J.convert_each J.to_string j with
+          | [from_; on_channel; msg] -> (from_, on_channel, msg)
+          | _ -> raise Bad_json)
+    } |> some
+  with Bad_json | J.Type_error (_, _) -> None
+
+let json_of_contact (c: contact): json =
+  `Assoc [
+    "lastSeen", `Float c.lastSeen;
+    "to_tell", `List (
+      List.map (fun (from_, on_channel, msg) ->
+        `List [`String from_; `String on_channel; `String msg]
+      ) c.to_tell
+    )
+  ]
+
+(* Contacts db *)
+
+type t = contact StrMap.t
+let db_filename = "socialdb.json"
+
+let read_db (): t =
+  match Yojson.Basic.from_file db_filename with
+  | `Assoc l ->
+    List.to_seq l
+    |> Sequence.filter_map (fun (k, j) ->
+      Option.(contact_of_json j >>= fun c -> Some (k, c)))
+    |> StrMap.of_seq
+  | _ -> StrMap.empty
+
+let write_db (db: t) =
+  let json = `Assoc (
+    StrMap.to_seq db
+    |> Sequence.map (fun (k, c) -> (k, json_of_contact c))
+    |> List.of_seq
+  ) in
+  Yojson.Basic.to_file db_filename json
 
 let contacts = Hashtbl.create 20
 

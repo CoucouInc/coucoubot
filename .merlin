@@ -5,4 +5,5 @@ PKG str
 PKG num
 PKG containers
 PKG yojson
+PKG sequence
 FLG -w +a-4-44-48
