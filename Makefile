@@ -1,5 +1,7 @@
-all: coucoubot.ml
-	ocamlbuild -cflag -safe-string -use-ocamlfind coucoubot.native
+all:
+	ocamlbuild -cflag -safe-string -use-ocamlfind src/coucoubot.native
 
 clean:
 	ocamlbuild -clean
+
+.PHONY: all clean

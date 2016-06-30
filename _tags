@@ -1,1 +1,3 @@
-<*>: package(irc-client.lwt, lwt, str, num, git.unix, yojson)
+<src>: include
+<**/*>: package(irc-client.lwt, lwt, str, num, git.unix, yojson)
+true: warn(+a-4-44), color(always)
