@@ -12,7 +12,6 @@ type op =
   | Set of factoid
   | Append of factoid
   | Reload
-  | Save
 
 let key_of_string s =
   let k = s |> String.trim |> CCString.lowercase_ascii in
@@ -32,8 +31,6 @@ let parse_op msg : op option =
   (try Scanf.sscanf msg "! %s" mk_get with _ -> None)
   <+>
   (try Scanf.sscanf msg "! reload" (Some Reload) with _ -> None)
-  <+>
-  (try Scanf.sscanf msg "! save" (Some Save) with _ -> None)
 
 (* read the json file *)
 let read_json (file:string) : json option Lwt.t =
@@ -130,15 +127,21 @@ module St = struct
   let state = ref empty
 
   let get k = get k !state
-  let set f = state := set f !state
-  let append f = state := append f !state
+
+  let save_ () =
+    write_file ~file:Config.factoids_file !state
+
+  let set f =
+    state := set f !state;
+    save_ ()
+
+  let append f =
+    state := append f !state;
+    save_ ()
 
   let reload () =
     read_file ~file:Config.factoids_file >|= fun fs ->
     state := fs;
     ()
-
-  let save () =
-    write_file ~file:Config.factoids_file !state
 
 end

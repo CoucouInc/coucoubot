@@ -12,7 +12,6 @@ type op =
   | Set of factoid
   | Append of factoid
   | Reload
-  | Save
 
 val parse_op : string -> op option
 
@@ -29,8 +28,7 @@ val write_file : file:string -> t -> unit Lwt.t
 
 module St : sig
   val get : key -> value list
-  val set : factoid -> unit
-  val append : factoid -> unit
+  val set : factoid -> unit Lwt.t
+  val append : factoid -> unit Lwt.t
   val reload : unit -> unit Lwt.t
-  val save : unit -> unit Lwt.t
 end

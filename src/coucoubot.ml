@@ -36,14 +36,9 @@ let () =
           let message = DistribM.uniform l |> DistribM.run in
           Irc.send_privmsg ~connection ~target:Config.channel ~message
       end
-    | Some (Factoids.Set f) ->
-      Factoids.St.set f;
-      Lwt.return_unit
-    | Some (Factoids.Append f) ->
-      Factoids.St.append f;
-      Lwt.return_unit
+    | Some (Factoids.Set f) -> Factoids.St.set f
+    | Some (Factoids.Append f) -> Factoids.St.append f
     | Some Factoids.Reload -> Factoids.St.reload ()
-    | Some Factoids.Save -> Factoids.St.save ()
   )
 
 (* on_join, on_nick *)
