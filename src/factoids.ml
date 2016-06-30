@@ -18,7 +18,12 @@ let key_of_string s =
   if String.contains k ' ' then None
   else Some k
 
-let mk_factoid key value = {key; value=[value]}
+let mk_factoid key value =
+  match key_of_string key with
+    | None -> invalid_arg "mk_factoid"
+    | Some key ->
+      let value = String.trim value in
+      {key; value=[value]}
 
 let re_set = Str.regexp "^!\\([^!=+]*\\)\\=\\(.*\\)$"
 let re_append = Str.regexp "^!\\([^!=+]*\\)\\+=\\(.*\\)$"
