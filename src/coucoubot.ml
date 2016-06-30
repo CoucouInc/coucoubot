@@ -29,16 +29,23 @@ let () =
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
       begin match Factoids.St.get k with
-        | [] -> Lwt.return ()
+        | [] ->
+          Irc.send_privmsg ~connection ~target:Config.channel ~message:"nope :-("
         | [message] ->
           Irc.send_privmsg ~connection ~target:Config.channel ~message
         | l ->
           let message = DistribM.uniform l |> DistribM.run in
           Irc.send_privmsg ~connection ~target:Config.channel ~message
       end
-    | Some (Factoids.Set f) -> Factoids.St.set f
-    | Some (Factoids.Append f) -> Factoids.St.append f
-    | Some Factoids.Reload -> Factoids.St.reload ()
+    | Some (Factoids.Set f) ->
+      Factoids.St.set f >>= fun () ->
+      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
+    | Some (Factoids.Append f) ->
+      Factoids.St.append f >>= fun () ->
+      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
+    | Some Factoids.Reload ->
+      Factoids.St.reload () >>= fun () ->
+      Irc.send_privmsg ~connection ~target:Config.channel ~message:"done."
   )
 
 (* on_join, on_nick *)
