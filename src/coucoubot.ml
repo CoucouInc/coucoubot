@@ -30,8 +30,7 @@ let () =
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
       begin match Factoids.St.get k with
-        | [] ->
-          Irc.send_privmsg ~connection ~target ~message:"nope :-("
+        | [] -> Lwt.return_unit
         | [message] ->
           Irc.send_privmsg ~connection ~target ~message
         | l ->
