@@ -1,0 +1,7 @@
+#require "lwt.unix";;
+#require "irc-client.lwt";;
+#require "str";;
+#require "yojson";;
+#require "containers";;
+#directory "_build/src";;
+#load "coucoulib.cma";;

@@ -79,7 +79,7 @@ let factoids_of_json (json: json): t option =
              append {key;value=v} acc
           )
           StrMap.empty l
-      | _ -> raise Exit
+      | _ -> raise Could_not_parse
     end
     |> some
   with Could_not_parse -> None
