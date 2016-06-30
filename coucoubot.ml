@@ -21,6 +21,20 @@ let () = Signal.on' Core.privmsg (fun msg ->
     else Lwt.return ()
   ) Commands.commands)
 
+(* Factoids *)
+let () = Signal.on' Core.privmsg (fun msg ->
+    Core.connection >>= fun connection ->
+    match Factoids.parse_op msg.Core.message with
+    | None -> Lwt.return ()
+    | Some (Factoids.Read k) ->
+      (Factoids.read k >>= function
+       | None -> Lwt.return ()
+       | Some message ->
+         Irc.send_privmsg ~connection ~target:Config.channel ~message)
+    | Some (Factoids.Write f) ->
+      Factoids.write f
+  )
+
 (* on_join, on_nick *)
 let () = Signal.on' Core.messages (fun msg ->
   Core.connection >>= fun conn ->

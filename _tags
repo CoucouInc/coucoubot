@@ -1,1 +1,1 @@
-<*>: package(irc-client.lwt, lwt, str, num)
+<*>: package(irc-client.lwt, lwt, str, num, git.unix, yojson)
