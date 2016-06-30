@@ -37,11 +37,11 @@ let () = Signal.on' Core.privmsg (fun msg ->
 
 (* on_join, on_nick *)
 let () = Signal.on' Core.messages (fun msg ->
-  Core.connection >>= fun conn ->
+  Core.connection >>= fun _conn ->
   match msg.Msg.command with
-  | Msg.JOIN (channels, _) ->
+  | Msg.JOIN (_channels, _) ->
     Lwt.return ()
-  | Msg.NICK newnick ->
+  | Msg.NICK _newnick ->
     Lwt.return ()
   | _ -> Lwt.return ())
 

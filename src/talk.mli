@@ -1,4 +1,3 @@
-open Prelude
 
 type t =
   | Ack

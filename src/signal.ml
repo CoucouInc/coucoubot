@@ -43,7 +43,7 @@ and keepalive =
 
 let _exn_handler = ref (fun _ -> ())
 
-let nop_handler x = Lwt.return ContinueListening
+let nop_handler _x = Lwt.return ContinueListening
 
 let create () =
   let s = {

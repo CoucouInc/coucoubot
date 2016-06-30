@@ -14,7 +14,7 @@ open Prelude
    - la chaine correspondant à [trucs]
 *)
 
-let tell (connection: Irc.connection_t) channel nick s =
+let tell (_: Irc.connection_t) channel nick s =
   try
     let (dest, msg) =
       let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
@@ -28,7 +28,7 @@ let tell (connection: Irc.connection_t) channel nick s =
 let refcmds = ref []
 let refcmdNames = ref []
 
-let listCommands connection channel nick s =
+let listCommands connection _channel nick _s =
   let str = ref "" in
   List.iter (fun (cmd, _) -> str := !str ^ cmd ^ " ") !refcmdNames;
   Irc.send_privmsg ~connection ~target:Config.channel
