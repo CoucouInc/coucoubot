@@ -43,6 +43,6 @@ let main =
   Irc.send_quit ~connection
 
 let connection =
-  _connection >>= fun conn ->
   Lwt.wakeup send_init ();
+  _connection >>= fun conn ->
   Lwt.return conn

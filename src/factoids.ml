@@ -20,17 +20,32 @@ let key_of_string s =
 
 let mk_factoid key value = {key; value=[value]}
 
+let re_set = Str.regexp "^!\\([^!=+]*\\)\\=\\(.*\\)$"
+let re_append = Str.regexp "^!\\([^!=+]*\\)\\+=\\(.*\\)$"
+let re_get = Str.regexp "^!\\([^!=+]*\\)$"
+let re_reload = Str.regexp "^![ ]*reload[ ]*$"
+
+let re_match2 f r s =
+  if Str.string_match r s 0
+  then f (Str.matched_group 1 s) (Str.matched_group 2 s) |> some
+  else None
+
+let re_match1 f r s =
+  if Str.string_match r s 0
+  then f (Str.matched_group 1 s) |> some
+  else None
+
 let parse_op msg : op option =
-  let mk_get k = Some (Get k) in
-  let mk_set k v = Some (Set (mk_factoid k v)) in
-  let mk_append k v = Some (Append (mk_factoid k v)) in
-  (try Scanf.sscanf msg "! %s = %s" mk_set with _ -> None)
+  let mk_get k = Get k in
+  let mk_set k v = Set (mk_factoid k v) in
+  let mk_append k v = Append (mk_factoid k v) in
+  (re_match2 mk_append re_append msg)
   <+>
-  (try Scanf.sscanf msg "! %s += %s" mk_append with _ -> None)
+  (re_match2 mk_set re_set msg)
   <+>
-  (try Scanf.sscanf msg "! %s" mk_get with _ -> None)
+  (re_match1 mk_get re_get msg)
   <+>
-  (try Scanf.sscanf msg "! reload" (Some Reload) with _ -> None)
+  (if Str.string_match re_reload msg 0 then Some Reload else None)
 
 (* read the json file *)
 let read_json (file:string) : json option Lwt.t =
