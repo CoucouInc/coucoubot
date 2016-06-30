@@ -18,10 +18,10 @@ depends: [
     "ocamlfind" {build}
     "base-bytes"
     "base-unix"
-    "conduit"
-    "cohttp"
-    "camlzip"
-    "nocrypto"
+    "lwt"
+    "irc-client"
+    "yojson"
+    "containers"
 ]
 tags: [ "coucou" "aop" ]
 homepage: "https://github.com/CoucouInc/coucoubot"

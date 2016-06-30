@@ -22,23 +22,32 @@ let () = Signal.on' Core.privmsg (fun msg ->
   ) Commands.commands)
 
 (* Factoids *)
-let () = Signal.on' Core.privmsg (fun msg ->
+let () =
+  Signal.on' Core.privmsg (fun msg ->
     Core.connection >>= fun connection ->
     match Factoids.parse_op msg.Core.message with
-    | None -> Lwt.return ()
-    | Some (Factoids.Read k) ->
-      (Factoids.read k >>= function
-       | None | Some [] -> Lwt.return ()
-       | Some [message] ->
+    | None -> Lwt.return_unit
+    | Some (Factoids.Get k) ->
+      (match Factoids.get k !Core.factoids with
+       | [] -> Lwt.return ()
+       | [message] ->
          Irc.send_privmsg ~connection ~target:Config.channel ~message
-       | Some l ->
+       | l ->
          let message = DistribM.uniform l |> DistribM.run in
          Irc.send_privmsg ~connection ~target:Config.channel ~message
       )
-    | Some (Factoids.Write f) ->
-      Factoids.write f
+    | Some (Factoids.Set f) ->
+      Core.factoids := Factoids.set f !Core.factoids;
+      Lwt.return_unit
     | Some (Factoids.Append f) ->
-      Factoids.append f
+      Core.factoids := Factoids.append f !Core.factoids;
+      Lwt.return_unit
+    | Some Factoids.Reload ->
+      Factoids.read_file ~file:Config.factoids_file >>= fun fs ->
+      Core.factoids := fs;
+      Lwt.return_unit
+    | Some Factoids.Save ->
+      Factoids.write_file ~file:Config.factoids_file !Core.factoids
   )
 
 (* on_join, on_nick *)

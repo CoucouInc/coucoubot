@@ -14,5 +14,7 @@ val privmsg_of_msg : Irc_message.t -> privmsg option
 val privmsg : privmsg Signal.t
 val privmsg_stream : privmsg Lwt_stream.t
 
+val factoids : Factoids.t ref
+
 (* Must be fed to the Lwt scheduler *)
 val main : unit Lwt.t

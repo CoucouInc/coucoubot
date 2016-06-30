@@ -6,3 +6,4 @@ val username : string
 val realname : string
 val nick : string
 val channel : string
+val factoids_file : string

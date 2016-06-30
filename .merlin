@@ -3,6 +3,6 @@ B _build/src
 PKG irc-client.lwt
 PKG str
 PKG num
-PKG git
+PKG containers
 PKG yojson
 FLG -w +a-4-44-48

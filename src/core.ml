@@ -40,6 +40,11 @@ let main =
       | `Error err -> Printf.eprintf "%s\n%!" err; Lwt.return ()) >>= fun () ->
   Irc.send_quit ~connection
 
+
+let factoids = ref Factoids.empty
+
 let connection =
   _connection >>= fun conn ->
+  Factoids.read_file ~file:Config.factoids_file >>= fun fs ->
+  factoids := fs;
   Lwt.return conn
