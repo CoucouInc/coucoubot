@@ -6,11 +6,11 @@ type json = Yojson.Basic.json
 
 (* Data for contacts *)
 type contact = {
-  mutable lastSeen: float;
-  mutable to_tell: (string   (* from       *)
-                    * string (* on channel *)
-                    * string (* message    *)
-                   ) list;
+  lastSeen: float;
+  to_tell: (string   (* from       *)
+            * string (* on channel *)
+            * string (* message    *)
+           ) list;
 }
 
 exception Bad_json
@@ -63,26 +63,31 @@ let write_db (db: t) =
   ) in
   Yojson.Basic.to_file db_filename json
 
-let contacts = Hashtbl.create 20
+let contacts = ref (read_db ())
 
-let isContact = Hashtbl.mem contacts
+let is_contact nick = StrMap.mem nick !contacts
 
-let newContact nick =
-  if not (isContact nick) then
-    Hashtbl.add contacts nick
-      { lastSeen = Unix.time();
-        to_tell = [];
-      }
+let set_data nick contact =
+  contacts := StrMap.add nick contact !contacts;
+  write_db !contacts
+
+let new_contact nick =
+  if not (is_contact nick) then
+    set_data nick {
+      lastSeen = Unix.time ();
+      to_tell = []
+    }
 
 let data nick =
-  if not @@ isContact nick then newContact nick;
-  Hashtbl.find contacts nick
+  if not @@ is_contact nick then new_contact nick;
+  StrMap.find nick !contacts
 
 (* Callbacks: runtime part *)
 
 (* Update lastSeen *)
 let () = Signal.on' Core.privmsg (fun msg ->
-  (data msg.Core.nick).lastSeen <- Unix.time ();
+  set_data msg.Core.nick
+    {(data msg.Core.nick) with lastSeen = Unix.time ()};
   Lwt.return ())
 
 (* Tell messages *)
@@ -99,10 +104,10 @@ let () = Signal.on' Core.messages (fun msg ->
   match nick with
   | None -> Lwt.return ()
   | Some nick ->
-    let to_tell = (data nick).to_tell |> List.rev in
-    (data nick).to_tell <- [];
+    let contact = data nick in
+    let to_tell = contact.to_tell |> List.rev in
+    set_data nick {contact with to_tell = []};
     Lwt_list.iter_s (fun (author, channel, message) ->
       Irc.send_privmsg ~connection ~target:channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author message))
       to_tell)
-

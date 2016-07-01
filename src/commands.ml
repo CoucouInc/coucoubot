@@ -20,7 +20,9 @@ let tell (_: Irc.connection_t) channel nick s =
       let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
       (List.hd a, List.hd @@ List.tl a) in
     Social.(
-      (data dest).to_tell <- (nick, channel, msg) :: (data dest).to_tell
+      set_data dest
+        {(data dest) with
+         to_tell = (nick, channel, msg) :: (data dest).to_tell}
     );
     Talk.(talk channel Ack)
   with _ -> Lwt.return ()
