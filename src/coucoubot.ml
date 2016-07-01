@@ -11,21 +11,22 @@ let () = Lwt.async (fun () ->
 let () = Signal.on' Core.messages (fun msg ->
   Lwt_io.printf "Log: %s\n%!" (Irc_message.to_string msg))
 
-(* Commandes *)
+(* Commandes + Factoids
+
+   Commands have priority over factoids, and override them
+*)
 let () = Signal.on' Core.privmsg (fun msg ->
-  Lwt_list.iter_s (fun (cmd, f) ->
+  let target = Core.reply_to msg in
+  Core.connection >>= fun connection ->
+  Lwt_list.fold_left_s (fun cmd_matched (cmd, f) ->
     if Str.string_match cmd msg.Core.message 0 then
       let after = Str.string_after msg.Core.message (Str.match_end ()) in
-      Core.connection >>= fun connection ->
-      f connection (Core.reply_to msg) msg.Core.nick after
-    else Lwt.return ()
-  ) Commands.commands)
+      f connection target msg.Core.nick after >>= fun () ->
+      Lwt.return true
+    else Lwt.return cmd_matched
+  ) false Commands.commands >>= fun cmd_matched ->
 
-(* Factoids *)
-let () =
-  Signal.on' Core.privmsg (fun msg ->
-    Core.connection >>= fun connection ->
-    let target = Core.reply_to msg in
+  if not cmd_matched then
     match Factoids.parse_op msg.Core.message with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
@@ -46,7 +47,8 @@ let () =
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () ->
       Irc.send_privmsg ~connection ~target ~message:"done."
-  )
+  else Lwt.return ()
+)
 
 (* on_join, on_nick *)
 let () = Signal.on' Core.messages (fun msg ->
