@@ -39,14 +39,11 @@ let () = Signal.on' Core.privmsg (fun msg ->
           Irc.send_privmsg ~connection ~target ~message
       end
     | Some (Factoids.Set f) ->
-      Factoids.St.set f >>= fun () ->
-      Irc.send_privmsg ~connection ~target ~message:"done."
+      Factoids.St.set f >>= fun () -> Talk.(talk ~target Ack)
     | Some (Factoids.Append f) ->
-      Factoids.St.append f >>= fun () ->
-      Irc.send_privmsg ~connection ~target ~message:"done."
+      Factoids.St.append f >>= fun () -> Talk.(talk ~target Ack)
     | Some Factoids.Reload ->
-      Factoids.St.reload () >>= fun () ->
-      Irc.send_privmsg ~connection ~target ~message:"done."
+      Factoids.St.reload () >>= fun () -> Talk.(talk ~target Ack)
   else Lwt.return ()
 )
 

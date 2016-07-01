@@ -8,6 +8,7 @@ type t =
 let ack = [
   "Bien reçu";
   "OK.";
+  "done.";
 ]
 
 let talk_base = function
