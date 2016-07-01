@@ -67,9 +67,11 @@ let contacts = ref (read_db ())
 
 let is_contact nick = StrMap.mem nick !contacts
 
-let set_data nick contact =
+let set_data ?(force_sync = true) nick contact =
   contacts := StrMap.add nick contact !contacts;
-  write_db !contacts
+  if force_sync then write_db !contacts
+
+let sync () = write_db !contacts
 
 let new_contact nick =
   if not (is_contact nick) then
@@ -86,9 +88,21 @@ let data nick =
 
 (* Update lastSeen *)
 let () = Signal.on' Core.privmsg (fun msg ->
-  set_data msg.Core.nick
+  set_data ~force_sync:false msg.Core.nick
     {(data msg.Core.nick) with lastSeen = Unix.time ()};
   Lwt.return ())
+
+(* Write the db to the disk periodically. 
+
+   We do not update the on-disk db each time lastSeen is updated (i.e. each time
+   someone talks), as it's not a big deal if we lose some data about lastSeen in
+   case of a crash.
+*)
+let () =
+  let rec loop () =
+    Lwt_unix.sleep 30. >>= fun () ->
+    sync (); loop () in
+  Lwt.async loop
 
 (* Tell messages *)
 let () = Signal.on' Core.messages (fun msg ->
@@ -106,7 +120,7 @@ let () = Signal.on' Core.messages (fun msg ->
   | Some nick ->
     let contact = data nick in
     let to_tell = contact.to_tell |> List.rev in
-    set_data nick {contact with to_tell = []};
+    if to_tell <> [] then set_data nick {contact with to_tell = []};
     Lwt_list.iter_s (fun (author, channel, message) ->
       Irc.send_privmsg ~connection ~target:channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author message))

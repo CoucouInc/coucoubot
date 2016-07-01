@@ -21,4 +21,10 @@ type contact = {
 }
 
 val data : string -> contact
-val set_data : string -> contact -> unit
+
+(* by default, [force_sync] is true. Setting data with [force_sync] as false may
+   result in data loss in case of reload/crash of the bot *)
+val set_data : ?force_sync:bool -> string -> contact -> unit
+
+(* Sync the in-memory db with the on-disk storage *)
+val sync : unit -> unit
