@@ -53,6 +53,7 @@ let read_db (): t =
     |> Sequence.filter_map (fun (k, j) ->
       Option.(contact_of_json j >>= fun c -> Some (k, c)))
     |> StrMap.of_seq
+  | exception (Sys_error _) -> StrMap.empty
   | _ -> StrMap.empty
 
 let write_db (db: t) =
