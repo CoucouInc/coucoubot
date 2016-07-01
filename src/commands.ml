@@ -24,7 +24,7 @@ let tell (_: Irc.connection_t) channel nick s =
         {(data dest) with
          to_tell = (nick, channel, msg) :: (data dest).to_tell}
     );
-    Talk.(talk channel Ack)
+    Talk.(talk ~target:channel Ack)
   with _ -> Lwt.return ()
 
 let refcmds = ref []
