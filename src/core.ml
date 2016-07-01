@@ -1,4 +1,5 @@
 open Prelude
+open Containers
 
 let _connection =
   let open Config in
@@ -27,7 +28,7 @@ let privmsg_of_msg msg =
   match msg.Msg.command with
   | Msg.PRIVMSG (to_, message) ->
     Some
-      { nick = get_some msg.Msg.prefix |> get_nick;
+      { nick = Option.get_exn msg.Msg.prefix |> get_nick;
         to_;
         message }
   | _ -> None

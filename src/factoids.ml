@@ -1,4 +1,5 @@
 open Prelude
+open Containers
 open Lwt.Infix
 
 type key = string
@@ -41,6 +42,7 @@ let re_match1 f r s =
   else None
 
 let parse_op msg : op option =
+  let open Option in
   let mk_get k = Get k in
   let mk_set k v = Set (mk_factoid k v) in
   let mk_append k v = Append (mk_factoid k v) in

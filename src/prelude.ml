@@ -10,15 +10,9 @@ let get_nick h =
 
 let some x = Some x
 
-let get_some = function
-  | Some x -> x
-  | None -> failwith "get_some"
-
 let (|?) o x = match o with
   | None -> x
   | Some y -> y
-
-let (<+>) o1 o2 = match o1 with None -> o2 | Some _ -> o1
 
 let contains s x =
   try Str.search_forward x s 0 |> ignore; true with
@@ -33,9 +27,6 @@ let contains s x =
 (*     sleep (t -. ((Unix.gettimeofday ()) -. now)) *)
 
 let select l = DistribM.run @@ DistribM.uniform l
-
-let id x = x
-let uncurry f (x, y) = f x y
 
 module StrMap = CCMap.Make(String)
 

@@ -96,7 +96,7 @@ let () = Signal.on' Core.messages (fun msg ->
   let nick =
     match msg.Msg.command with
     | Msg.JOIN (_, _) | Msg.PRIVMSG (_, _) ->
-      some @@ get_nick @@ get_some msg.Msg.prefix
+      some @@ get_nick @@ Option.get_exn msg.Msg.prefix
     | Msg.NICK newnick ->
       Some newnick
     | _ -> None
