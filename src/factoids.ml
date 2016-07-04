@@ -19,12 +19,15 @@ let key_of_string s =
   if String.contains k ' ' then None
   else Some k
 
-let mk_factoid key value =
+let mk_key key =
   match key_of_string key with
-    | None -> invalid_arg "mk_factoid"
-    | Some key ->
-      let value = String.trim value in
-      {key; value=[value]}
+  | None -> invalid_arg "mk_key"
+  | Some key -> key
+
+let mk_factoid key value =
+  let key = mk_key key in
+  let value = String.trim value in
+  {key; value=[value]}
 
 let re_set = Str.regexp "^!\\([^!=+]*\\)\\=\\(.*\\)$"
 let re_append = Str.regexp "^!\\([^!=+]*\\)\\+=\\(.*\\)$"
@@ -43,7 +46,7 @@ let re_match1 f r s =
 
 let parse_op msg : op option =
   let open Option in
-  let mk_get k = Get k in
+  let mk_get k = Get (mk_key k) in
   let mk_set k v = Set (mk_factoid k v) in
   let mk_append k v = Append (mk_factoid k v) in
   (re_match2 mk_append re_append msg)
