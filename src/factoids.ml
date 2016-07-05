@@ -143,11 +143,8 @@ let write_file ~file (fs: t) : unit Lwt.t =
        Lwt_io.write oc s >>= fun () ->
        Lwt_io.flush oc)
   >>= fun () ->
-  let cmd =
-    Printf.sprintf "mv '%s' '%s'" (String.escaped file') (String.escaped file)
-  in
-  Lwt_log.ign_debug_f "move `%s` into `%s` with `%s`" file' file cmd;
-  Lwt_unix.system cmd >|= fun _ -> ()
+  Sys.rename file' file;
+  Lwt.return ()
 
 (* state *)
 
