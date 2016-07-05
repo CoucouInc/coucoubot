@@ -1,4 +1,3 @@
-open Prelude
 open Lwt.Infix
 open Cohttp_lwt_unix
 open Soup
@@ -6,7 +5,7 @@ open Soup
 let page_title uri =
   Client.get uri >>= fun (_, body) ->
   Cohttp_lwt_body.to_string body >>= fun body ->
-  parse body $ "title" |> R.leaf_text |> Lwt.return
+  parse body $ "title" |> leaf_text |> Lwt.return
 
 let youtube_hosts = [
   "youtube.com"; "www.youtube.com";
@@ -17,7 +16,7 @@ let youtube _nick msg =
   let uri = Uri.of_string msg in
   match Uri.host uri with
   | Some host when List.mem host youtube_hosts ->
-      page_title uri >|= some
+      page_title uri
   | _ ->
     Lwt.return None
 
