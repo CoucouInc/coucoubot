@@ -6,4 +6,7 @@ PKG num
 PKG containers
 PKG yojson
 PKG sequence
+PKG uri
+PKG cohttp.lwt
+PKG lambdasoup
 FLG -w +a-4-44-48

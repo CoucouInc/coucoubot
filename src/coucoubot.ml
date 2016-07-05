@@ -47,6 +47,15 @@ let () = Signal.on' Core.privmsg (fun msg ->
   else Lwt.return ()
 )
 
+(* triggers *)
+let () = Signal.on' Core.privmsg (fun msg ->
+  let target = Core.reply_to msg in
+  Core.connection >>= fun connection ->
+  Triggers.apply msg.Core.nick msg.Core.message >>= function
+  | Some rep ->
+    Irc.send_privmsg ~connection ~target ~message:rep
+  | None -> Lwt.return ())
+
 (* on_join, on_nick *)
 let () = Signal.on' Core.messages (fun msg ->
   Core.connection >>= fun _conn ->
