@@ -1,3 +1,4 @@
+open Containers
 open Prelude
 open Lwt.Infix
 open Cohttp_lwt_unix
@@ -60,6 +61,32 @@ let yt connection channel _ s =
   | _ ->
     Lwt.return ()
 
+let cancer_uri = Uri.of_string "https://polochon.lelele.io/cancer/quickcancer"
+
+let cancer connection channel _ s =
+  Client.get cancer_uri >>= fun (_, body) ->
+  Cohttp_lwt_body.to_string body >>= fun body ->
+  let links = Str.split (Str.regexp "\n") body
+              |> List.filter ((<>) "")
+              |> List.filter_map (fun s ->
+                match Str.bounded_split (Str.regexp ":") s 2 with
+                | [title; url] -> Some (title, url)
+                | _ -> None)
+  in
+  let fmt_link (title, url) = title ^ ":" ^ url in
+  begin match String.trim s with
+  | "" ->
+    some @@ fmt_link @@ DistribM.(run @@ uniform links)
+  | search ->
+    let re = Str.regexp_case_fold search in
+    List.find (fun (title, url) ->
+      if contains title re then Some (fmt_link (title, url)) else None
+    ) links
+  end |> function
+  | Some message ->
+    Irc.send_privmsg ~connection ~target:channel ~message
+  | None -> Lwt.return ()
+
 let refcmds = ref []
 let refcmdNames = ref []
 
@@ -78,6 +105,7 @@ let commandNames = [
   "tell", tell;
   "coucou", coucoulevel;
   "yt", yt;
+  "cancer", cancer;
 ]
 
 let commands = commandNames
