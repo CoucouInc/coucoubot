@@ -1,4 +1,7 @@
 open Prelude
+open Lwt.Infix
+open Cohttp_lwt_unix
+open Soup
 
 (* Commandes: une commande est la donnée de :
    - un nom
@@ -35,6 +38,28 @@ let coucoulevel connection channel nick s =
       nick coucou_count in
   Irc.send_privmsg ~connection ~target:channel ~message
 
+
+let page_title uri =
+  Client.get uri >>= fun (_, body) ->
+  Cohttp_lwt_body.to_string body >>= fun body ->
+  parse body $ "title" |> leaf_text |> Lwt.return
+
+let youtube_hosts = [
+  "youtube.com"; "www.youtube.com";
+  "youtu.be"; "www.youtu.be";
+]
+
+let yt connection channel _ s =
+  let uri = Uri.of_string (String.trim s) in
+  match Uri.host uri with
+  | Some host when List.mem host youtube_hosts ->
+    (page_title uri >>= function
+     | Some title ->
+       Irc.send_privmsg ~connection ~target:channel ~message:title
+     | _ -> Lwt.return ())
+  | _ ->
+    Lwt.return ()
+
 let refcmds = ref []
 let refcmdNames = ref []
 
@@ -52,6 +77,7 @@ let commandNames = [
   "help", listCommands;
   "tell", tell;
   "coucou", coucoulevel;
+  "yt", yt;
 ]
 
 let commands = commandNames
