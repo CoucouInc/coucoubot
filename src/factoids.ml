@@ -34,16 +34,6 @@ let re_append = Str.regexp "^!\\([^!=+]*\\)\\+=\\(.*\\)$"
 let re_get = Str.regexp "^!\\([^!=+]*\\)$"
 let re_reload = Str.regexp "^![ ]*reload[ ]*$"
 
-let re_match2 f r s =
-  if Str.string_match r s 0
-  then f (Str.matched_group 1 s) (Str.matched_group 2 s) |> some
-  else None
-
-let re_match1 f r s =
-  if Str.string_match r s 0
-  then f (Str.matched_group 1 s) |> some
-  else None
-
 let parse_op msg : op option =
   let open Option in
   let mk_get k = Get (mk_key k) in

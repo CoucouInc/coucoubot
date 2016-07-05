@@ -18,6 +18,16 @@ let contains s x =
   try Str.search_forward x s 0 |> ignore; true with
     Not_found -> false
 
+let re_match2 f r s =
+  if Str.string_match r s 0
+  then f (Str.matched_group 1 s) (Str.matched_group 2 s) |> some
+  else None
+
+let re_match1 f r s =
+  if Str.string_match r s 0
+  then f (Str.matched_group 1 s) |> some
+  else None
+
 (* Use [Lwt_unix.sleep] instead *)
 (* let rec sleep t = *)
 (*   if t > 0. then *)
