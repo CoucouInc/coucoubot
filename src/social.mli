@@ -18,6 +18,7 @@ type contact = {
             * string (* on channel *)
             * string (* message    *)
            ) list;
+  coucous : int;
 }
 
 val data : string -> contact

@@ -11,6 +11,7 @@ type contact = {
             * string (* on channel *)
             * string (* message    *)
            ) list;
+  coucous: int; (* coucou counter *)
 }
 
 exception Bad_json
@@ -27,7 +28,8 @@ let contact_of_json (json: json): contact option =
         |> J.convert_each (fun j ->
           match J.convert_each J.to_string j with
           | [from_; on_channel; msg] -> (from_, on_channel, msg)
-          | _ -> raise Bad_json)
+          | _ -> raise Bad_json);
+      coucous = member "coucous" |> J.to_int_option |? 0
     } |> some
   with Bad_json | J.Type_error (_, _) -> None
 
@@ -38,7 +40,8 @@ let json_of_contact (c: contact): json =
       List.map (fun (from_, on_channel, msg) ->
         `List [`String from_; `String on_channel; `String msg]
       ) c.to_tell
-    )
+    );
+    "coucous", `Int c.coucous
   ]
 
 (* Contacts db *)
@@ -78,7 +81,8 @@ let new_contact nick =
   if not (is_contact nick) then
     set_data nick {
       lastSeen = Unix.time ();
-      to_tell = []
+      to_tell = [];
+      coucous = 0;
     }
 
 let data nick =
@@ -92,6 +96,20 @@ let () = Signal.on' Core.privmsg (fun msg ->
   set_data ~force_sync:false msg.Core.nick
     {(data msg.Core.nick) with lastSeen = Unix.time ()};
   Lwt.return ())
+
+(* Update coucous *)
+let is_coucou msg =
+  contains msg (Str.regexp "coucou")
+
+let incr_coucous nick =
+  let d = data nick in
+  set_data ~force_sync:false nick {d with coucous = d.coucous + 1}
+
+let () = Signal.on' Core.privmsg (fun msg ->
+  if is_coucou msg.Core.message then
+    incr_coucous msg.Core.nick;
+  Lwt.return ()
+)
 
 (* Write the db to the disk periodically. 
 
@@ -123,6 +141,7 @@ let () = Signal.on' Core.messages (fun msg ->
     let to_tell = contact.to_tell |> List.rev in
     if to_tell <> [] then set_data nick {contact with to_tell = []};
     Lwt_list.iter_s (fun (author, channel, message) ->
+      if is_coucou message then incr_coucous Config.nick;
       Irc.send_privmsg ~connection ~target:channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author message))
       to_tell)
