@@ -9,3 +9,5 @@ TAGS
 setup.*
 qtest*
 *.html
+*_j.*
+*_t.*

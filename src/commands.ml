@@ -5,6 +5,8 @@ open Lwt.Infix
 open Cohttp_lwt_unix
 open Soup
 
+module M = Movie
+
 (* Commandes: une commande est la donnée de :
    - un nom
    - une fonction.
@@ -125,6 +127,14 @@ let vote connection channel nick s =
     Irc.send_privmsg ~connection ~target:channel ~message
   | _ -> Lwt.return_unit
 
+let movie kind connection target _nick s =
+  String.trim s |>
+  kind |>
+  Movie.search >>= 
+  Movie.format_seq >|= 
+  Sequence.to_list >>=
+  Lwt_list.iter_s (fun message -> Irc.send_privmsg ~connection ~target ~message)
+
 let refcmds = ref []
 let refcmdNames = ref []
 
@@ -145,6 +155,8 @@ let commandNames = [
   "yt", yt;
   "cancer", cancer;
   "vote", vote;
+  "film", movie Movie.query_movie;
+  "serie", movie Movie.query_serie;
 ]
 
 let commands = commandNames
