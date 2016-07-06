@@ -4,6 +4,7 @@ open Prelude
 
 type t =
   | Ack
+  | Error
 
 let ack = [
   "Bien reçu";
@@ -11,8 +12,15 @@ let ack = [
   "done.";
 ]
 
+let error = [
+  "oops";
+  "nop";
+  "coucOUPS";
+]
+
 let talk_base = function
   | Ack -> ack
+  | Error -> error
 
 (******************************************************************************)
 

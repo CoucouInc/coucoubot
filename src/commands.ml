@@ -98,11 +98,6 @@ let cancer connection channel _ s =
     let message = fmt_link @@ DistribM.(run @@ uniform links_with_search) in
     Irc.send_privmsg ~connection ~target:channel ~message
 
-let random_error =
-  let errors_msgs = CCList.random_choose [ "oops"; "nop"; "coucOUPS"; ] in
-  let random = Random.State.make_self_init () in
-  fun () -> errors_msgs random
-
 let vote connection channel nick s =
   let vote_help = function
     | "show" -> "!vote show <sondage> <nick> : affiche le vote courant pour le sondage par nick"
@@ -123,8 +118,8 @@ let vote connection channel nick s =
     | _ -> Error "what did you say ?"
   in
   match answer with
-  | Error msg -> 
-    let message = Printf.sprintf "%s: %s" (random_error ()) msg in
+  | Error msg ->
+    let message = Printf.sprintf "%s: %s" (Talk.(select Error)) msg in
     Irc.send_privmsg ~connection ~target:channel ~message
   | Ok (Some message) ->
     Irc.send_privmsg ~connection ~target:channel ~message
