@@ -87,6 +87,28 @@ let cancer connection channel _ s =
     let message = fmt_link @@ DistribM.(run @@ uniform links_with_search) in
     Irc.send_privmsg ~connection ~target:channel ~message
 
+let random_error =
+  let errors_msgs = CCList.random_choose [ "oops"; "nop"; "coucOUPS"; ] in
+  let random = Random.State.make_self_init () in
+  fun () -> errors_msgs random
+
+let vote connection channel nick s =
+  let answer =
+    match Stringext.split ~max:3 (String.trim s) ~on:' ' with
+    | "show" :: name :: nick :: _ -> Freedom.show_vote name nick
+    | "start" :: name :: purpose -> Freedom.create_poll nick name (match purpose with [] -> "" | purpose :: _ -> purpose)
+    | "status" :: name :: _ -> Freedom.vote_status name
+    | ("pour" | "contre" as vote) :: name :: _ -> Freedom.vote nick name vote
+    | _ -> Error "what did you say ?"
+  in
+  match answer with
+  | Error msg -> 
+    let message = Printf.sprintf "%s: %s" (random_error ()) msg in
+    Irc.send_privmsg ~connection ~target:channel ~message
+  | Ok (Some message) ->
+    Irc.send_privmsg ~connection ~target:channel ~message
+  | _ -> Lwt.return_unit
+
 let refcmds = ref []
 let refcmdNames = ref []
 
@@ -106,6 +128,7 @@ let commandNames = [
   "coucou", coucoulevel;
   "yt", yt;
   "cancer", cancer;
+  "vote", vote;
 ]
 
 let commands = commandNames
