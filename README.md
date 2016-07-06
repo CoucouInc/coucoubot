@@ -1,6 +1,7 @@
 # Coucoubot
 
 le bot qui fait «coucou!»
+Coucou coucou
 
 ## Build
 
