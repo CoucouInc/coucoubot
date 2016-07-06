@@ -1,3 +1,4 @@
+open Result
 open Lwt.Infix
 
 (* TODO add proper lib *)
