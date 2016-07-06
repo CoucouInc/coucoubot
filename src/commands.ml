@@ -119,7 +119,7 @@ let vote connection channel nick s =
   in
   match answer with
   | Error msg ->
-    let message = Printf.sprintf "%s: %s" (Talk.(select Error)) msg in
+    let message = Printf.sprintf "%s: %s" Talk.(select Err) msg in
     Irc.send_privmsg ~connection ~target:channel ~message
   | Ok (Some message) ->
     Irc.send_privmsg ~connection ~target:channel ~message
