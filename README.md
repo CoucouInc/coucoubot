@@ -5,7 +5,7 @@ Coucou coucou
 
 ## Build
 
-- `opam install lwt irc-client yojson containers sequence uri cohttp lambdasoup`
+- `opam install lwt irc-client yojson containers sequence uri cohttp lambdasoup atdgen`
 - configurer/hacker en lisant `src/coucoubot.ml`, `src/commands.ml`
 - `make`
 - `./coucoubot.native`
