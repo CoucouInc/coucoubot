@@ -41,8 +41,18 @@ let coucoulevel connection channel nick s =
 
 
 let page_title uri =
-  Client.get uri >>= fun (_, body) ->
-  Cohttp_lwt_body.to_string body >>= fun body ->
+  let open Cohttp in
+  let rec get_body uri =
+    Client.get uri >>= fun (resp, body) ->
+    if Code.(is_redirection (code_of_status resp.Response.status)) then
+      Header.get resp.Response.headers "location"
+      |> Option.get_exn
+      |> Uri.of_string
+      |> get_body
+    else
+      Cohttp_lwt_body.to_string body
+  in
+  get_body uri >>= fun body ->
   parse body $ "title" |> leaf_text |> Lwt.return
 
 let youtube_hosts = [
