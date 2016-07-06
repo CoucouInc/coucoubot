@@ -94,8 +94,18 @@ let random_error =
   fun () -> errors_msgs random
 
 let vote connection channel nick s =
+  let vote_help = function
+    | "show" -> "!vote show <sondage> <nick> : affiche le vote courant pour le sondage par nick"
+    | "start" -> "!vote start <sondage> <description (optionnel)> : crée un nouveau sondage"
+    | "status" -> "!vote status <sondage> : affiche le nombre de voix courant"
+    | "pour" -> "!vote pour <sondage> : un seul vote par nick, changement autorisé"
+    | "contre" -> "!vote contre <sondage>"
+    | _ -> "commande inconnue"
+  in
   let answer =
     match Stringext.split ~max:3 (String.trim s) ~on:' ' with
+    | ["help"] -> Ok (Some "commandes : show start status pour contre")
+    | "help" :: command :: [] -> Ok (Some (vote_help command))
     | "show" :: name :: nick :: _ -> Freedom.show_vote name nick
     | "start" :: name :: purpose -> Freedom.create_poll nick name (match purpose with [] -> "" | purpose :: _ -> purpose)
     | "status" :: name :: _ -> Freedom.vote_status name
