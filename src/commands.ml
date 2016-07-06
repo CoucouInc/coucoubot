@@ -36,11 +36,13 @@ let tell (_: Irc.connection_t) channel nick s =
 
 let coucoulevel connection channel nick s =
   let s = String.trim s in
-  let nick = if s <> "" then s else nick in
-  let coucou_count = Social.((data nick).coucous) in
-  let message = Printf.sprintf "%s est un coucouteur niveau %d"
-      nick coucou_count in
-  Irc.send_privmsg ~connection ~target:channel ~message
+  if contains s (Str.regexp " ") then Lwt.return ()
+  else
+    let nick = if s <> "" then s else nick in
+    let coucou_count = Social.((data nick).coucous) in
+    let message = Printf.sprintf "%s est un coucouteur niveau %d"
+        nick coucou_count in
+    Irc.send_privmsg ~connection ~target:channel ~message
 
 
 let page_title uri =
