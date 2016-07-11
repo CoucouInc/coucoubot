@@ -22,6 +22,11 @@ depends: [
     "irc-client"
     "yojson"
     "containers"
+    "sequence"
+    "uri"
+    "cohttp"
+    "atdgen"
+    "lambdasoup"
 ]
 tags: [ "coucou" "aop" ]
 homepage: "https://github.com/CoucouInc/coucoubot"
