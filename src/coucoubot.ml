@@ -20,7 +20,7 @@ let () = Signal.on' Core.privmsg (fun msg ->
     | None -> Lwt.return ()
     | Some count ->
       Irc.send_privmsg ~connection ~target
-        ~message:(Printf.sprintf "%s est maintenant de %d" (k :> string) count)
+        ~message:(Printf.sprintf "%s : %d" (k :> string) count)
   in
   let target = Core.reply_to msg in
   Core.connection >>= fun connection ->
