@@ -16,6 +16,12 @@ let () = Signal.on' Core.messages (fun msg ->
    Commands have priority over factoids, and override them
 *)
 let () = Signal.on' Core.privmsg (fun msg ->
+  let count_update_message ~connection ~target (k: Factoids.key) = function
+    | None -> Lwt.return ()
+    | Some count ->
+      Irc.send_privmsg ~connection ~target
+        ~message:(Printf.sprintf "%s est maintenant de %d" (k :> string) count)
+  in
   let target = Core.reply_to msg in
   Core.connection >>= fun connection ->
   Lwt_list.fold_left_s (fun cmd_matched (cmd, f) ->
@@ -31,10 +37,12 @@ let () = Signal.on' Core.privmsg (fun msg ->
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
       begin match Factoids.St.get k with
-        | [] -> Lwt.return_unit
-        | [message] ->
+        | Factoids.Int i ->
+          Irc.send_privmsg ~connection ~target ~message:(string_of_int i)
+        | Factoids.StrList [] -> Lwt.return_unit
+        | Factoids.StrList [message] ->
           Irc.send_privmsg ~connection ~target ~message
-        | l ->
+        | Factoids.StrList l ->
           let message = DistribM.uniform l |> DistribM.run in
           Irc.send_privmsg ~connection ~target ~message
       end
@@ -42,6 +50,10 @@ let () = Signal.on' Core.privmsg (fun msg ->
       Factoids.St.set f >>= fun () -> Talk.(talk ~target Ack)
     | Some (Factoids.Append f) ->
       Factoids.St.append f >>= fun () -> Talk.(talk ~target Ack)
+    | Some (Factoids.Incr k) ->
+      Factoids.St.incr k >>= count_update_message ~connection ~target k
+    | Some (Factoids.Decr k) ->
+      Factoids.St.decr k >>= count_update_message ~connection ~target k
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () -> Talk.(talk ~target Ack)
   else Lwt.return ()

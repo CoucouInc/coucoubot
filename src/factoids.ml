@@ -3,8 +3,10 @@ open Containers
 open Lwt.Infix
 
 type key = string
-type value = string
-type factoid = {key: key; value: value list}
+type value = 
+  | StrList of string list
+  | Int of int
+type factoid = {key: key; value: value}
 type t = factoid StrMap.t
 type json = Yojson.Safe.json
 
@@ -12,6 +14,8 @@ type op =
   | Get of key
   | Set of factoid
   | Append of factoid
+  | Incr of key
+  | Decr of key
   | Reload
 
 let key_of_string s =
@@ -27,23 +31,32 @@ let mk_key key =
 let mk_factoid key value =
   let key = mk_key key in
   let value = String.trim value in
-  {key; value=[value]}
+  try {key; value = Int (int_of_string value)}
+  with Failure _ -> {key; value = StrList [value]}
 
-let re_set = Str.regexp "^!\\([^!=+]*\\)\\=\\(.*\\)$"
-let re_append = Str.regexp "^!\\([^!=+]*\\)\\+=\\(.*\\)$"
-let re_get = Str.regexp "^!\\([^!=+]*\\)$"
+let re_set = Str.regexp "^!\\([^!=+-]*\\)\\=\\(.*\\)$"
+let re_append = Str.regexp "^!\\([^!=+-]*\\)\\+=\\(.*\\)$"
+let re_get = Str.regexp "^!\\([^!=+-]*\\)$"
 let re_reload = Str.regexp "^![ ]*reload[ ]*$"
+let re_incr = Str.regexp "^!\\([^!=+-]*\\)\\+\\+[ ]*$"
+let re_decr = Str.regexp "^!\\([^!=+-]*\\)--[ ]*$"
 
 let parse_op msg : op option =
   let open Option in
   let mk_get k = Get (mk_key k) in
   let mk_set k v = Set (mk_factoid k v) in
   let mk_append k v = Append (mk_factoid k v) in
+  let mk_incr k = Incr (mk_key k) in
+  let mk_decr k = Decr (mk_key k) in
   (re_match2 mk_append re_append msg)
   <+>
   (re_match2 mk_set re_set msg)
   <+>
   (re_match1 mk_get re_get msg)
+  <+>
+  (re_match1 mk_incr re_incr msg)
+  <+>
+  (re_match1 mk_decr re_decr msg)
   <+>
   (if Str.string_match re_reload msg 0 then Some Reload else None)
 
@@ -64,23 +77,44 @@ let as_str (j:json) : string = match j with
   | `String s -> s
   | _ -> raise Could_not_parse
 
-let as_str_list (j:json) : string list = match j with
-    | `List l -> List.map as_str l
-    | _ -> raise Could_not_parse
+let as_value (j: json) : value = match j with
+  | `List l -> StrList (List.map as_str l)
+  | `Int i -> Int i
+  | _ -> raise Could_not_parse
 
-let get key (fcs:t) : value list =
+let get key (fcs:t) : value =
   try (StrMap.find key fcs).value
-  with Not_found -> []
+  with Not_found -> StrList []
 
 let set ({key;_} as f) (fcs:t): t =
   StrMap.add key f fcs
 
 let append {key;value} (fcs:t): t =
   let value' =
-    try (StrMap.find key fcs).value
-    with Not_found -> [] in
-  let value' = value @ value' in
+    match (StrMap.find key fcs).value, value with
+    | Int i, Int j -> Int (i+j)
+    | StrList l, StrList l' -> StrList (l @ l')
+    | StrList l, Int j -> StrList (string_of_int j :: l)
+    | Int i, StrList l -> StrList (string_of_int i :: l)
+    | exception Not_found -> value
+  in
   StrMap.add key {key; value = value'} fcs
+
+let incr key (fcs:t): int option * t =
+  match (StrMap.find key fcs).value with
+  | Int i ->
+    let count = i + 1 in
+    (Some count, StrMap.add key {key; value = Int count} fcs)
+  | _ -> (None, fcs)
+  | exception Not_found -> (None, fcs)
+
+let decr key (fcs:t): int option * t =
+  match (StrMap.find key fcs).value with
+  | Int i ->
+    let count = i - 1 in
+    (Some count, StrMap.add key {key; value = Int count} fcs)
+  | _ -> (None, fcs)
+  | exception Not_found -> (None, fcs)
 
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: json): t option =
@@ -89,7 +123,7 @@ let factoids_of_json (json: json): t option =
       | `Assoc l ->
         List.fold_left
           (fun acc (k, v) ->
-             let v = as_str_list v in
+             let v = as_value v in
              let key = match key_of_string k with
                | Some k -> k
                | None -> raise Could_not_parse
@@ -106,8 +140,10 @@ let json_of_factoids (factoids: t): json =
   let l =
     StrMap.fold
       (fun _ {key; value} acc ->
-         let value = List.map (fun s->`String s) value in
-         (key, `List value) :: acc)
+         let jvalue = match value with
+           | StrList l -> `List (List.map (fun s -> `String s) l)
+           | Int i -> `Int i in
+         (key, jvalue) :: acc)
       factoids
       []
   in
@@ -153,6 +189,16 @@ module St = struct
   let append f =
     state := append f !state;
     save_ ()
+
+  let incr k =
+    let (count, state') = incr k !state in
+    state := state';
+    save_ () >|= fun _ -> count
+
+  let decr k =
+    let (count, state') = decr k !state in
+    state := state';
+    save_ () >|= fun _ -> count
 
   let reload () =
     read_file ~file:Config.factoids_file >|= fun fs ->
