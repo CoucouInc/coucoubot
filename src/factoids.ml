@@ -101,20 +101,20 @@ let append {key;value} (fcs:t): t =
   StrMap.add key {key; value = value'} fcs
 
 let incr key (fcs:t): int option * t =
-  match (StrMap.find key fcs).value with
+  let value = try (StrMap.find key fcs).value with Not_found -> Int 0 in
+  match value with
   | Int i ->
     let count = i + 1 in
     (Some count, StrMap.add key {key; value = Int count} fcs)
   | _ -> (None, fcs)
-  | exception Not_found -> (None, fcs)
 
 let decr key (fcs:t): int option * t =
-  match (StrMap.find key fcs).value with
+  let value = try (StrMap.find key fcs).value with Not_found -> Int 0 in
+  match value with
   | Int i ->
     let count = i - 1 in
     (Some count, StrMap.add key {key; value = Int count} fcs)
   | _ -> (None, fcs)
-  | exception Not_found -> (None, fcs)
 
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: json): t option =
