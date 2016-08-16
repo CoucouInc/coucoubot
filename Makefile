@@ -12,5 +12,9 @@ clean:
 	rm src/movie_j.ml*
 	ocamlbuild -clean
 
+backups:
+	@echo "doing backups of all .json files…"
+	./tools/save.sh *.json
+
 .DEFAULT_GOAL := all
-.PHONY: all clean
+.PHONY: all clean backups
