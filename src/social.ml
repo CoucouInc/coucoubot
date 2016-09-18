@@ -111,7 +111,7 @@ let () = Signal.on' Core.privmsg (fun msg ->
   Lwt.return ()
 )
 
-(* Write the db to the disk periodically. 
+(* Write the db to the disk periodically.
 
    We do not update the on-disk db each time lastSeen is updated (i.e. each time
    someone talks), as it's not a big deal if we lose some data about lastSeen in

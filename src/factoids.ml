@@ -3,7 +3,7 @@ open Containers
 open Lwt.Infix
 
 type key = string
-type value = 
+type value =
   | StrList of string list
   | Int of int
 type factoid = {key: key; value: value}

@@ -132,8 +132,8 @@ let vote connection channel nick s =
 let movie kind connection target _nick s =
   String.trim s |>
   kind |>
-  Movie.search >>= 
-  Movie.format_seq >|= 
+  Movie.search >>=
+  Movie.format_seq >|=
   Sequence.to_list >>=
   Lwt_list.iter_s (fun message -> Irc.send_privmsg ~connection ~target ~message)
 
