@@ -142,9 +142,15 @@ let search tokens (fcs:t): value =
     StrMap.fold
       (fun _ {key; value} choices ->
          if List.for_all (tok_matches key value) tokens
-         then ("!"^key) :: choices
+         then ("!"^key, value) :: choices
          else choices)
       fcs []
+    |> (function
+      | [] -> []
+      | [k,v] -> [k ^ " -> " ^ string_of_value v] (* keep result *)
+      | l -> List.map fst l
+    )
+    
   in
   StrList [Prelude.string_list_to_string matches]
 
