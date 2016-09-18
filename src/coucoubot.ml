@@ -1,10 +1,7 @@
 open Lwt.Infix
 
 let all_ : Plugin.t list = [
-  Cmd_web.plugin;
-  Movie.plugin;
   Social.plugin;
-  Freedom.plugin;
   Factoids.plugin;
 ]
 
