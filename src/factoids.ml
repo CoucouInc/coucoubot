@@ -40,7 +40,7 @@ let string_of_op = function
 
 let mk_key key =
   match key_of_string key with
-  | None -> invalid_arg "mk_key"
+  | None -> invalid_arg ("mk_key : `" ^ key ^ "`")
   | Some key -> key
 
 let mk_factoid key value =
@@ -51,18 +51,19 @@ let mk_factoid key value =
 
 let mk_search s =
   let tokens =
-    Str.split (Str.regexp "[ \t]*") s
+    String.trim s
+    |> Str.split (Str.regexp "[ \t]+")
     |> List.map String.lowercase
   in
   Search tokens
 
-let re_set = Str.regexp "^!\\([^!=+-]*\\)\\=\\(.*\\)$"
-let re_append = Str.regexp "^!\\([^!=+-]*\\)\\+=\\(.*\\)$"
-let re_get = Str.regexp "^!\\([^!=+-]*\\)$"
+let re_set = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*=\\(.*\\)$"
+let re_append = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+=\\(.*\\)$"
+let re_get = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*$"
 let re_reload = Str.regexp "^![ ]*reload[ ]*$"
-let re_incr = Str.regexp "^!\\([^!=+-]*\\)\\+\\+[ ]*$"
-let re_decr = Str.regexp "^!\\([^!=+-]*\\)--[ ]*$"
-let re_search = Str.regexp "^![ ]*search[ ]*\\(.*\\)[ ]*$"
+let re_incr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+\\+[ ]*$"
+let re_decr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*--[ ]*$"
+let re_search = Str.regexp "^![ ]*search[ ]*\\(.+\\)$"
 
 let parse_op msg : op option =
   let open Option in
@@ -71,6 +72,10 @@ let parse_op msg : op option =
   let mk_append k v = Append (mk_factoid k v) in
   let mk_incr k = Incr (mk_key k) in
   let mk_decr k = Decr (mk_key k) in
+  (re_match1 mk_search re_search msg)
+  <+>
+  (if Str.string_match re_reload msg 0 then Some Reload else None)
+  <+>
   (re_match2 mk_append re_append msg)
   <+>
   (re_match2 mk_set re_set msg)
@@ -81,9 +86,7 @@ let parse_op msg : op option =
   <+>
   (re_match1 mk_decr re_decr msg)
   <+>
-  (re_match1 mk_search re_search msg)
-  <+>
-  (if Str.string_match re_reload msg 0 then Some Reload else None)
+  None
 
 (* read the json file *)
 let read_json (file:string) : json option Lwt.t =
@@ -245,7 +248,8 @@ module St = struct
     state := state';
     save_ () >|= fun _ -> count
 
-  let search tokens = search tokens !state
+  let search tokens =
+    search tokens !state
 
   let reload () =
     read_file ~file:Config.factoids_file >|= fun fs ->
