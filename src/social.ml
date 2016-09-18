@@ -1,5 +1,6 @@
 open Prelude
 open Containers
+open Lwt.Infix
 
 module J = Yojson.Basic.Util
 type json = Yojson.Basic.json
@@ -50,6 +51,8 @@ let json_of_contact (c: contact): json =
 (* Contacts db *)
 
 type t = contact StrMap.t
+
+(* TODO: move to config *)
 let db_filename = "socialdb.json"
 
 let read_db (): t =
@@ -70,49 +73,37 @@ let write_db (db: t) =
   ) in
   Yojson.Basic.to_file db_filename json
 
-let contacts = ref (read_db ())
+type state = t ref
 
-let is_contact nick = StrMap.mem nick !contacts
+let is_contact state nick = StrMap.mem nick !state
 
-let set_data ?(force_sync = true) nick contact =
-  contacts := StrMap.add nick contact !contacts;
-  if force_sync then write_db !contacts
+let set_data state ?(force_sync = true) nick contact =
+  state := StrMap.add nick contact !state;
+  if force_sync then write_db !state
 
-let sync () = write_db !contacts
+let sync state = write_db !state
 
-let new_contact nick =
-  if not (is_contact nick) then
-    set_data nick {
+let new_contact state nick =
+  if not (is_contact state nick) then
+    set_data state nick {
       last_seen = Unix.time ();
       to_tell = [];
       coucous = 0;
     }
 
-let data nick =
-  if not @@ is_contact nick then new_contact nick;
-  StrMap.find nick !contacts
+let data state nick =
+  if not @@ is_contact state nick then new_contact state nick;
+  StrMap.find nick !state
 
-(* Callbacks: runtime part *)
-
-(* Update lastSeen *)
-let () = Signal.on' Core.privmsg (fun msg ->
-  set_data ~force_sync:false msg.Core.nick
-    {(data msg.Core.nick) with last_seen = Unix.time ()};
-  Lwt.return ())
+(* plugin *)
 
 (* Update coucous *)
 let is_coucou msg =
   contains msg (Str.regexp "coucou")
 
-let incr_coucous nick =
-  let d = data nick in
-  set_data ~force_sync:false nick {d with coucous = d.coucous + 1}
-
-let () = Signal.on' Core.privmsg (fun msg ->
-  if is_coucou msg.Core.message then
-    incr_coucous msg.Core.nick;
-  Lwt.return ()
-)
+let incr_coucous state nick =
+  let d = data state nick in
+  set_data state ~force_sync:false nick {d with coucous = d.coucous + 1}
 
 (* Write the db to the disk periodically.
 
@@ -120,15 +111,58 @@ let () = Signal.on' Core.privmsg (fun msg ->
    someone talks), as it's not a big deal if we lose some data about lastSeen in
    case of a crash.
 *)
-let () =
+let save_thread state =
   let rec loop () =
     Lwt_unix.sleep 30. >>= fun () ->
-    sync (); loop () in
+    sync state; loop ()
+  in
   Lwt.async loop
 
-(* Tell messages *)
-let () = Signal.on' Core.messages (fun msg ->
-  Core.connection >>= fun connection ->
+let cmd_tell state =
+  Command.make
+    ~descr:"ask the bot to transmit a message to someone absent"
+    ~prio:10 ~name:"tell"
+    (fun (module C:Core.S) msg ->
+       match Command.match_prefix1 ~prefix:"tell" msg with
+       | None -> Command.Cmd_skip
+       | Some s ->
+         let nick = msg.Core.nick in
+         let target = Core.reply_to msg in
+         try
+           let dest, msg =
+             let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
+             (List.hd a, List.hd @@ List.tl a) in
+           set_data state dest
+             {(data state dest) with
+                to_tell =
+                  {from=nick; on_channel=target; msg}
+                  :: (data state dest).to_tell};
+           ;
+           Command.Cmd_match (C.talk ~target Talk.Ack)
+         with e ->
+           Command.Cmd_fail ("tell: " ^ Printexc.to_string e)
+    )
+
+let cmd_coucou state =
+  Command.make_simple
+    ~descr:"increment coucou level" ~prefix:"coucou" ~prio:10
+    (fun msg s ->
+       let s = String.trim s in
+       if contains s (Str.regexp " ") then Lwt.return_none
+       else
+         let nick = if s <> "" then s else msg.Core.nick in
+         let coucou_count = (data state nick).coucous in
+         let message =
+           Printf.sprintf "%s est un coucouteur niveau %d"
+             nick coucou_count
+         in
+         Lwt.return (Some message)
+    )
+
+
+(* callback to update state, notify users of their messages, etc. *)
+let on_message (module C:Core.S) state msg =
+  let module Msg = Irc_message in
   let nick =
     match msg.Msg.command with
     | Msg.JOIN (_, _) | Msg.PRIVMSG (_, _) ->
@@ -140,11 +174,39 @@ let () = Signal.on' Core.messages (fun msg ->
   match nick with
   | None -> Lwt.return ()
   | Some nick ->
-    let contact = data nick in
+    let contact = data state nick in
     let to_tell = contact.to_tell |> List.rev in
-    if to_tell <> [] then set_data nick {contact with to_tell = []};
+    if to_tell <> [] then set_data state nick {contact with to_tell = []};
     Lwt_list.iter_s (fun {from=author; on_channel; msg} ->
-      if is_coucou msg then incr_coucous Config.nick;
-      Irc.send_privmsg ~connection ~target:on_channel
+      if is_coucou msg then incr_coucous state nick;
+      C.send_privmsg ~target:on_channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author msg))
-      to_tell)
+      to_tell
+
+let plugin =
+  let init ((module C:Core.S) as core) _conf =
+    let state = ref (read_db ()) in
+    (* Update lastSeen *)
+    Signal.on' C.privmsg
+      (fun msg ->
+         set_data state ~force_sync:false msg.Core.nick
+           {(data state msg.Core.nick) with last_seen = Unix.time ()};
+         Lwt.return ());
+    (* update coucou *)
+    Signal.on' C.privmsg
+      (fun msg ->
+         if is_coucou msg.Core.message
+         then incr_coucous state msg.Core.nick;
+         Lwt.return ());
+    (* notify users *)
+    Signal.on' C.messages (on_message core state);
+    (* periodic save *)
+    save_thread state;
+    Lwt.return state
+  and stop state =
+    write_db !state |> Lwt.return
+  and commands state =
+    [ cmd_tell state; cmd_coucou state ]
+  in
+  Plugin.stateful ~init ~stop commands
+

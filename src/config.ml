@@ -1,34 +1,51 @@
 open Prelude
 
-(* User defined config ********************************************************)
+type t = {
+  server : string;
+  port : int;
+  username : string;
+  realname : string;
+  nick : string;
+  channel : string;
+  factoids_file : string;
+}
 
-let default_server = "irc.freenode.net"
-let port = 6667
-let username = "coucoubot"
-let realname = "coucoubot"
-let default_nick = "coucoubot"
-let default_channel = "#arch-fr-free"
-let default_factoids = "factoids.json"
-(******************************************************************************)
+let default = {
+  server = "irc.freenode.net";
+  port = 6667;
+  username = "coucoubot";
+  realname = "coucoubot";
+  nick = "coucoubot";
+  channel = "#arch-fr-free";
+  factoids_file = "factoids.json";
+}
 
-let custom_nick = ref None
-let custom_chan = ref None
-let custom_server = ref None
-let custom_factoids = ref None
+let parse conf args =
+  let custom_nick = ref None in
+  let custom_chan = ref None in
+  let custom_server = ref None in
+  let custom_factoids = ref None in
+  let options = Arg.align
+      [ "--nick", Arg.String (fun s -> custom_nick := Some s),
+        " custom nickname (default: " ^ default.nick ^ ")"
+      ; "--chan", Arg.String (fun s -> custom_chan := Some s),
+        " channel to join (default: " ^ default.channel ^ ")"
+      ; "--server", Arg.String (fun s -> custom_server := Some s),
+        " server to join (default: " ^ default.server ^ ")"
+      ; "--factoids", Arg.String (fun s -> custom_factoids := Some s),
+        " file containing factoids (default: " ^ default.factoids_file ^ ")"
+      ]
+  in
+  Arg.parse_argv args options ignore "parse options";
+  { conf with
+    nick = !custom_nick |? conf.nick;
+    channel = !custom_chan |? conf.channel;
+    server = !custom_server |? conf.server;
+    factoids_file = !custom_factoids |? conf.factoids_file;
+  }
 
-let options = Arg.align
-    [ "--nick", Arg.String (fun s -> custom_nick := Some s),
-      " custom nickname (default: " ^ default_nick ^ ")"
-    ; "--chan", Arg.String (fun s -> custom_chan := Some s),
-      " channel to join (default: " ^ default_channel ^ ")"
-    ; "--server", Arg.String (fun s -> custom_server := Some s),
-      " server to join (default: " ^ default_server ^ ")"
-    ; "--factoids", Arg.String (fun s -> custom_factoids := Some s),
-      " file containing factoids (default: " ^ default_factoids ^ ")"
-    ]
-let () = Arg.parse options ignore "coucou"
-
-let nick = !custom_nick |? default_nick
-let channel = !custom_chan |? default_channel
-let server = !custom_server |? default_server
-let factoids_file = !custom_factoids |? default_factoids
+let of_argv () =
+  try parse default Sys.argv
+  with
+    | Arg.Bad msg -> print_endline msg; exit 1
+    | Arg.Help msg -> print_endline msg; exit 0

@@ -53,7 +53,7 @@ let mk_search s =
   let tokens =
     String.trim s
     |> Str.split (Str.regexp "[ \t]+")
-    |> List.map String.lowercase
+    |> List.map CCString.lowercase_ascii
   in
   Search tokens
 
@@ -152,7 +152,7 @@ let search tokens (fcs:t): value =
       | Int i -> key = string_of_int i
       | StrList l ->
         List.exists
-          (fun s -> CCString.mem ~sub:tok (String.lowercase s))
+          (fun s -> CCString.mem ~sub:tok (CCString.lowercase_ascii s))
           l
     end
   in
@@ -222,46 +222,73 @@ let write_file ~file (fs: t) : unit Lwt.t =
   Sys.rename file' file;
   Lwt.return ()
 
-(* state *)
+type state = {
+  mutable st_cur: t;
+  st_conf: Config.t;
+}
 
-module St = struct
-  let state = ref empty
-
-  let get k = get k !state
-
-  let save_ () =
-    write_file ~file:Config.factoids_file !state
-
-  let set f =
-    state := set f !state;
-    save_ ()
-
-  let append f =
-    state := append f !state;
-    save_ ()
-
-  let incr k =
-    let (count, state') = incr k !state in
-    state := state';
-    save_ () >|= fun _ -> count
-
-  let decr k =
-    let (count, state') = decr k !state in
-    state := state';
-    save_ () >|= fun _ -> count
-
-  let search tokens =
-    search tokens !state
-
-  let reload () =
-    read_file ~file:Config.factoids_file >|= fun fs ->
-    state := fs;
-    ()
-
-  (* load at init time *)
-  let () =
-    Lwt.on_success Core.init
-      (fun () ->
-         print_endline "load initial factoids file...";
-         Lwt.async reload)
-end
+let plugin : Plugin.t =
+  let module P = Plugin in
+  let save state =
+    write_file ~file:state.st_conf.Config.factoids_file state.st_cur
+  and reload state =
+    read_file ~file:state.st_conf.Config.factoids_file >|= fun fs ->
+    state.st_cur <- fs;
+  in
+  (* create state *)
+  let init _ config : state Lwt.t =
+    print_endline "load initial factoids file...";
+    let state = {st_cur=empty; st_conf=config;} in
+    reload state >|= fun () ->
+    state
+  and cleanup state = save state
+  and commands state =
+    let reply (module C:Core.S) msg =
+      let target = Core.reply_to msg in
+      let matched x = Command.Cmd_match x in
+      let reply_value (v:value) = match v with
+        | Int i ->
+          C.send_privmsg ~target ~message:(string_of_int i) |> matched
+        | StrList [] -> Lwt.return_unit |> matched
+        | StrList [message] ->
+          C.send_privmsg ~target ~message |> matched
+        | StrList l ->
+          let message = DistribM.uniform l |> DistribM.run in
+          C.send_privmsg ~target ~message |> matched
+      and count_update_message (k: key) = function
+        | None -> Lwt.return_unit
+        | Some count ->
+          C.send_privmsg ~target
+            ~message:(Printf.sprintf "%s : %d" (k :> string) count)
+      in
+      let op = parse_op msg.Core.message in
+      CCOpt.iter (fun c -> Log.logf "parsed command `%s`" (string_of_op c)) op;
+      begin match op with
+        | Some (Get k) ->
+          reply_value (get k state.st_cur)
+        | Some (Set f) ->
+          state.st_cur <- set f state.st_cur;
+          (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+        | Some (Append f) ->
+          state.st_cur <- append f state.st_cur;
+          (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+        | Some (Incr k) ->
+          let count, state' = incr k state.st_cur in
+          state.st_cur <- state';
+          (save state >>= fun () -> count_update_message k count) |> matched
+        | Some (Decr k) ->
+          let count, state' = decr k state.st_cur in
+          state.st_cur <- state';
+          (save state >>= fun () -> count_update_message k count) |> matched
+        | Some (Search l) ->
+          reply_value (search l state.st_cur)
+        | Some Reload ->
+          (reload state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+        | None -> Command.Cmd_skip
+      end
+    in
+    [ Command.make
+        ~descr:"factoids" ~name:"factoids" ~prio:80 reply
+    ]
+  in
+  P.stateful ~init ~stop:cleanup commands

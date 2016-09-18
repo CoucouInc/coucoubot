@@ -98,3 +98,22 @@ let format_seq ?n results =
   filter_map (fun r -> CCOpt.map (flip CCPair.make r) @@ title r) |>
   map (show_result ~buffer) |>
   Lwt.return
+
+let mk_movie_cmd prefix q_of_str =
+  Command.make_simple_l
+    ~descr:"look for movies/series" ~prio:10 ~prefix
+    (fun _ s ->
+       String.trim s |>
+       q_of_str |>
+       search >>=
+       format_seq >|=
+       Sequence.to_list
+    )
+
+let cmd_film = mk_movie_cmd "film" query_movie
+let cmd_serie = mk_movie_cmd "serie" query_serie
+
+let plugin =
+  [ cmd_film;
+    cmd_serie;
+  ] |> Plugin.of_cmds

@@ -35,14 +35,5 @@ val search : string list -> t -> value
 val read_file : file:string -> t Lwt.t
 val write_file : file:string -> t -> unit Lwt.t
 
-(* stateful *)
 
-module St : sig
-  val get : key -> value
-  val set : factoid -> unit Lwt.t
-  val search : string list -> value
-  val append : factoid -> unit Lwt.t
-  val incr : key -> int option Lwt.t
-  val decr : key -> int option Lwt.t
-  val reload : unit -> unit Lwt.t
-end
+val plugin : Plugin.t

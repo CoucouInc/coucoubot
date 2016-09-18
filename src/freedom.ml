@@ -20,7 +20,6 @@ module Time = struct
 end
 
 module Vote = struct
-
   type vote = For | Against
 
   type t = {
@@ -30,7 +29,7 @@ module Vote = struct
     mutable quorum : int;
   }
 
-  let start ?(quorum=5) ?(duration=Time.minutes 30) purpose = 
+  let start ?(quorum=5) ?(duration=Time.minutes 30) purpose =
     { purpose; status = Hashtbl.create 10; expire = Time.(now () +. duration); quorum }
 
   let add_vote t nick vote =
@@ -77,30 +76,37 @@ end
 
 type poll = { creator : string; vote : Vote.t }
 
-let polls = Hashtbl.create 10
+type state = (string, poll) Hashtbl.t
 
 let max_polls_per_nick = 1
 let max_polls = 5
 
-let nb_polls_per_nick nick = Hashtbl.fold begin fun _ { creator;_ } count -> if creator = nick then count + 1 else count end polls 0
+let nb_polls_per_nick polls nick =
+  Hashtbl.fold
+    begin fun _ { creator;_ } count -> if creator = nick then count + 1 else count end
+    polls 0
 
 let show_status name { creator; vote } =
-  Printf.sprintf "sondage %s en cours créé par %s : %s" name creator (Vote.show_status vote)
+  Printf.sprintf "sondage %s en cours créé par %s : %s"
+    name creator (Vote.show_status vote)
 
-let create_poll nick name purpose =
+let create_poll polls nick name purpose =
   match Hashtbl.length polls with
   | cur_len when cur_len >= max_polls -> Error "trop de sondages en cours"
   | _ ->
-    match nb_polls_per_nick nick with
-    | cur_polls when cur_polls >= max_polls_per_nick -> Error (Printf.sprintf "impossible de créer plus de %d sondages à la fois" max_polls_per_nick)
-    | _ ->
-      match Hashtbl.find polls name with
-      | poll -> Error (show_status name poll)
-      | exception Not_found ->
-        Hashtbl.add polls name { creator = nick; vote = Vote.start purpose };
-        Ok None
+    match nb_polls_per_nick polls nick with
+      | cur_polls when cur_polls >= max_polls_per_nick ->
+        Error
+          (Printf.sprintf "impossible de créer plus de %d sondages à la fois"
+             max_polls_per_nick)
+      | _ ->
+        match Hashtbl.find polls name with
+          | poll -> Error (show_status name poll)
+          | exception Not_found ->
+            Hashtbl.add polls name { creator = nick; vote = Vote.start purpose };
+            Ok None
 
-let vote nick name vote =
+let vote polls nick name vote =
   match Hashtbl.find polls name with
   | exception Not_found -> Error "pas de sondage en cours"
   | poll ->
@@ -111,26 +117,86 @@ let vote nick name vote =
       match Vote.is_complete poll.vote with
       | true ->
         Hashtbl.remove polls name;
-        Ok (Some (Printf.sprintf "sondage terminé : decision %s" (CCOpt.get "egalité" @@ CCOpt.map Vote.string_of_vote @@ Vote.get_winner poll.vote)))
+        Ok (Some (Printf.sprintf "sondage terminé : decision %s"
+              (CCOpt.get "egalité" @@ CCOpt.map Vote.string_of_vote
+               @@ Vote.get_winner poll.vote)))
       | _ -> Ok (Some (Vote.show_status poll.vote))
 
-let show_vote name nick =
+let show_vote polls name nick =
   match Hashtbl.find polls name with
-  | exception Not_found -> Error "pas de sondage en cours"
-  | poll ->
-    let vote = CCOpt.get "indécis vis à vis de" @@ CCOpt.map Vote.string_of_vote @@ Vote.vote_status poll.vote nick in
-   Ok (Some (Printf.sprintf "%s est %s %s" nick vote name))
+    | exception Not_found ->
+      Error "pas de sondage en cours"
+    | poll ->
+      let vote =
+        CCOpt.get "indécis vis à vis de"
+        @@ CCOpt.map Vote.string_of_vote
+        @@ Vote.vote_status poll.vote nick
+      in
+      Ok (Some (Printf.sprintf "%s est %s %s" nick vote name))
 
-let vote_status name =
+let vote_status polls name =
   match Hashtbl.find polls name with
   | exception Not_found -> Error "pas de sondage en cours"
   | poll ->
     Ok (Some (show_status name poll))
 
-let rec collector () =
+let rec collector polls =
   let now = Time.now () in
-  Hashtbl.iter begin fun name { vote; _ } -> if Vote.expired now vote then Hashtbl.remove polls name end polls;
-  Lwt_unix.sleep (Time.minutes 1) >>=
-  collector
+  Hashtbl.iter
+    begin fun name { vote; _ } ->
+      if Vote.expired now vote then Hashtbl.remove polls name end
+    polls;
+  Lwt_unix.sleep (Time.minutes 1) >>= fun () ->
+  collector polls
 
-let _ = Lwt.async collector
+let init _core _conf : state Lwt.t =
+  let polls = Hashtbl.create 10 in
+  Lwt.async (fun () -> collector polls);
+  Lwt.return polls
+
+let reply polls msg s =
+  let vote_help = function
+    | "show" ->
+      "!vote show <sondage> <nick> : affiche le vote courant pour le sondage par nick"
+    | "start" ->
+      "!vote start <sondage> <description (optionnel)> : crée un nouveau sondage"
+    | "status" ->
+      "!vote status <sondage> : affiche le nombre de voix courant"
+    | "pour" ->
+      "!vote pour <sondage> : un seul vote par nick, changement autorisé"
+    | "contre" ->
+      "!vote contre <sondage>"
+    | _ -> "commande inconnue"
+  in
+  let reply_res = function
+    | Error msg ->
+      let message = Printf.sprintf "%s: %s" Talk.(select Err) msg in
+      Some message |> Lwt.return
+    | Ok x -> x |> Lwt.return
+  in
+  begin match Stringext.split ~max:3 (String.trim s) ~on:' ' with
+    | ["help"] -> Some "commandes : show start status pour contre" |> Lwt.return
+    | "help" :: command :: [] -> Some (vote_help command) |> Lwt.return
+    | "show" :: name :: nick :: _ ->
+      show_vote polls name nick |> reply_res
+    | "start" :: name :: purpose ->
+      create_poll polls msg.Core.nick name
+        (match purpose with [] -> "" | purpose :: _ -> purpose)
+      |> reply_res
+    | "status" :: name :: _ -> vote_status polls name |> reply_res
+    | ("pour" | "contre" as v) :: name :: _ ->
+      vote polls msg.Core.nick name v |> reply_res
+    | _ -> Error "what did you say ?" |> reply_res
+  end
+
+let cmd_vote state : Command.t =
+  Command.make_simple
+    ~descr:"vote system" ~prefix:"vote" ~prio:10
+    (reply state)
+
+let plugin =
+  Plugin.stateful
+    ~init
+    ~stop:(fun _ -> Lwt.return_unit)
+    (fun state -> [cmd_vote state])
+

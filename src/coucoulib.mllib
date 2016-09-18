@@ -1,4 +1,4 @@
-Commands
+Command
 Config
 Core
 DistribM
@@ -8,6 +8,7 @@ Log
 Movie
 Movie_j
 Movie_schema
+Plugin
 Prelude
 Signal
 Social

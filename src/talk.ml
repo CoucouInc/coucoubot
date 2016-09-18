@@ -1,4 +1,3 @@
-open Prelude
 
 (* À étendre *)
 
@@ -22,12 +21,4 @@ let talk_base = function
   | Ack -> ack
   | Err -> error
 
-(******************************************************************************)
-
-let talk ~target ty =
-  let msgs = talk_base ty in
-  Core.connection >>= fun connection ->
-  Irc.send_privmsg ~connection ~target ~message:(select msgs)
-
-let select ty =
-  talk_base ty |> select
+let select ty = talk_base ty |> Prelude.select
