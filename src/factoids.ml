@@ -17,10 +17,10 @@ type op =
   | Incr of key
   | Decr of key
 
-let key_of_string s =
-  let k = s |> String.trim |> CCString.lowercase_ascii in
-  if String.contains k ' ' then None
-  else Some k
+let key_of_string s : key option =
+  let s = String.trim s in
+  if String.contains s ' ' then None
+  else Some s
 
 let string_of_value = function
   | Int i -> string_of_int i
@@ -134,7 +134,7 @@ let search tokens (fcs:t): value =
       | Int i -> key = string_of_int i
       | StrList l ->
         List.exists
-          (fun s -> CCString.mem ~sub:tok (CCString.lowercase_ascii s))
+          (fun s -> CCString.mem ~sub:tok s)
           l
     end
   in
@@ -233,7 +233,6 @@ let cmd_search state =
        let tokens =
          String.trim s
          |> Str.split (Str.regexp "[ \t]+")
-         |> List.map CCString.lowercase_ascii
        in
        search tokens state.st_cur |> msg_of_value |> Lwt.return
     )

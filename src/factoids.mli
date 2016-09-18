@@ -1,6 +1,6 @@
 open Prelude
 
-type key = private string
+type key = private string (* utf8 *)
 type value =
   | StrList of string list
   | Int of int
