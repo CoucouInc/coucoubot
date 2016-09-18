@@ -13,11 +13,9 @@ type json = Yojson.Safe.json
 type op =
   | Get of key
   | Set of factoid
-  | Search of string list (* space separated tokens *)
   | Append of factoid
   | Incr of key
   | Decr of key
-  | Reload
 
 let key_of_string s =
   let k = s |> String.trim |> CCString.lowercase_ascii in
@@ -32,11 +30,9 @@ let string_of_value = function
 let string_of_op = function
   | Get k -> "get " ^ k
   | Set {key;value} -> "set " ^ key ^ " := " ^ string_of_value value
-  | Search l -> "search [" ^ String.concat "," l ^ "]"
   | Append {key;value} -> "append " ^ key ^ " += " ^ string_of_value value
   | Incr k -> "incr " ^ k
   | Decr k -> "decr " ^ k
-  | Reload -> "reload"
 
 let mk_key key =
   match key_of_string key with
@@ -49,21 +45,11 @@ let mk_factoid key value =
   try {key; value = Int (int_of_string value)}
   with Failure _ -> {key; value = StrList [value]}
 
-let mk_search s =
-  let tokens =
-    String.trim s
-    |> Str.split (Str.regexp "[ \t]+")
-    |> List.map CCString.lowercase_ascii
-  in
-  Search tokens
-
 let re_set = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*=\\(.*\\)$"
 let re_append = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+=\\(.*\\)$"
 let re_get = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*$"
-let re_reload = Str.regexp "^![ ]*reload[ ]*$"
 let re_incr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+\\+[ ]*$"
 let re_decr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*--[ ]*$"
-let re_search = Str.regexp "^![ ]*search[ ]*\\(.+\\)$"
 
 let parse_op msg : op option =
   let open Option in
@@ -72,10 +58,6 @@ let parse_op msg : op option =
   let mk_append k v = Append (mk_factoid k v) in
   let mk_incr k = Incr (mk_key k) in
   let mk_decr k = Decr (mk_key k) in
-  (re_match1 mk_search re_search msg)
-  <+>
-  (if Str.string_match re_reload msg 0 then Some Reload else None)
-  <+>
   (re_match2 mk_append re_append msg)
   <+>
   (re_match2 mk_set re_set msg)
@@ -156,7 +138,7 @@ let search tokens (fcs:t): value =
           l
     end
   in
-  let choices =
+  let matches =
     StrMap.fold
       (fun _ {key; value} choices ->
          if List.for_all (tok_matches key value) tokens
@@ -164,7 +146,7 @@ let search tokens (fcs:t): value =
          else choices)
       fcs []
   in
-  StrList choices
+  StrList [Prelude.string_list_to_string matches]
 
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: json): t option =
@@ -227,68 +209,93 @@ type state = {
   st_conf: Config.t;
 }
 
+let save state =
+  write_file ~file:state.st_conf.Config.factoids_file state.st_cur
+and reload state =
+  read_file ~file:state.st_conf.Config.factoids_file >|= fun fs ->
+  state.st_cur <- fs
+
+let init _ config : state Lwt.t =
+  print_endline "load initial factoids file...";
+  let state = {st_cur=empty; st_conf=config;} in
+  reload state >|= fun () ->
+  state
+
+let msg_of_value (v:value): string option = match v with
+  | Int i -> Some (string_of_int i)
+  | StrList [] -> None
+  | StrList [message] -> Some message
+  | StrList l -> Some (DistribM.uniform l |> DistribM.run)
+
+let cmd_search state =
+  Command.make_simple ~descr:"search in factoids" ~prefix:"search" ~prio:10
+    (fun _ s ->
+       let tokens =
+         String.trim s
+         |> Str.split (Str.regexp "[ \t]+")
+         |> List.map CCString.lowercase_ascii
+       in
+       search tokens state.st_cur |> msg_of_value |> Lwt.return
+    )
+
+let cmd_reload state =
+  Command.make_simple ~descr:"reload factoids" ~prefix:"reload" ~prio:10
+    (fun _ _ ->
+       reload state >|= fun () -> Some (Talk.select Talk.Ack)
+    )
+
+let cmd_factoids state =
+  let reply (module C:Core.S) msg =
+    let target = Core.reply_to msg in
+    let matched x = Command.Cmd_match x in
+    let reply_value (v:value) = match v with
+      | Int i ->
+        C.send_privmsg ~target ~message:(string_of_int i) |> matched
+      | StrList [] -> Lwt.return_unit |> matched
+      | StrList [message] ->
+        C.send_privmsg ~target ~message |> matched
+      | StrList l ->
+        let message = DistribM.uniform l |> DistribM.run in
+        C.send_privmsg ~target ~message |> matched
+    and count_update_message (k: key) = function
+      | None -> Lwt.return_unit
+      | Some count ->
+        C.send_privmsg ~target
+          ~message:(Printf.sprintf "%s : %d" (k :> string) count)
+    in
+    let op = parse_op msg.Core.message in
+    CCOpt.iter (fun c -> Log.logf "parsed command `%s`" (string_of_op c)) op;
+    begin match op with
+      | Some (Get k) ->
+        reply_value (get k state.st_cur)
+      | Some (Set f) ->
+        state.st_cur <- set f state.st_cur;
+        (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+      | Some (Append f) ->
+        state.st_cur <- append f state.st_cur;
+        (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+      | Some (Incr k) ->
+        let count, state' = incr k state.st_cur in
+        state.st_cur <- state';
+        (save state >>= fun () -> count_update_message k count) |> matched
+      | Some (Decr k) ->
+        let count, state' = decr k state.st_cur in
+        state.st_cur <- state';
+        (save state >>= fun () -> count_update_message k count) |> matched
+      | None -> Command.Cmd_skip
+    end
+  in
+  Command.make
+    ~descr:"factoids" ~name:"factoids" ~prio:80 reply
+
+let commands state: Command.t list =
+  [ cmd_factoids state;
+    cmd_search state;
+    cmd_reload state;
+  ]
+
 let plugin : Plugin.t =
   let module P = Plugin in
-  let save state =
-    write_file ~file:state.st_conf.Config.factoids_file state.st_cur
-  and reload state =
-    read_file ~file:state.st_conf.Config.factoids_file >|= fun fs ->
-    state.st_cur <- fs;
-  in
   (* create state *)
-  let init _ config : state Lwt.t =
-    print_endline "load initial factoids file...";
-    let state = {st_cur=empty; st_conf=config;} in
-    reload state >|= fun () ->
-    state
-  and cleanup state = save state
-  and commands state =
-    let reply (module C:Core.S) msg =
-      let target = Core.reply_to msg in
-      let matched x = Command.Cmd_match x in
-      let reply_value (v:value) = match v with
-        | Int i ->
-          C.send_privmsg ~target ~message:(string_of_int i) |> matched
-        | StrList [] -> Lwt.return_unit |> matched
-        | StrList [message] ->
-          C.send_privmsg ~target ~message |> matched
-        | StrList l ->
-          let message = DistribM.uniform l |> DistribM.run in
-          C.send_privmsg ~target ~message |> matched
-      and count_update_message (k: key) = function
-        | None -> Lwt.return_unit
-        | Some count ->
-          C.send_privmsg ~target
-            ~message:(Printf.sprintf "%s : %d" (k :> string) count)
-      in
-      let op = parse_op msg.Core.message in
-      CCOpt.iter (fun c -> Log.logf "parsed command `%s`" (string_of_op c)) op;
-      begin match op with
-        | Some (Get k) ->
-          reply_value (get k state.st_cur)
-        | Some (Set f) ->
-          state.st_cur <- set f state.st_cur;
-          (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
-        | Some (Append f) ->
-          state.st_cur <- append f state.st_cur;
-          (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
-        | Some (Incr k) ->
-          let count, state' = incr k state.st_cur in
-          state.st_cur <- state';
-          (save state >>= fun () -> count_update_message k count) |> matched
-        | Some (Decr k) ->
-          let count, state' = decr k state.st_cur in
-          state.st_cur <- state';
-          (save state >>= fun () -> count_update_message k count) |> matched
-        | Some (Search l) ->
-          reply_value (search l state.st_cur)
-        | Some Reload ->
-          (reload state >>= fun () -> C.talk ~target Talk.Ack) |> matched
-        | None -> Command.Cmd_skip
-      end
-    in
-    [ Command.make
-        ~descr:"factoids" ~name:"factoids" ~prio:80 reply
-    ]
-  in
+  let cleanup state = save state in
   P.stateful ~init ~stop:cleanup commands
