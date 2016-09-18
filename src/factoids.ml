@@ -24,6 +24,20 @@ let key_of_string s =
   if String.contains k ' ' then None
   else Some k
 
+let string_of_value = function
+  | Int i -> string_of_int i
+  | StrList l ->
+    "[" ^ String.concat "," l ^ "]"
+
+let string_of_op = function
+  | Get k -> "get " ^ k
+  | Set {key;value} -> "set " ^ key ^ " := " ^ string_of_value value
+  | Search l -> "search [" ^ String.concat "," l ^ "]"
+  | Append {key;value} -> "append " ^ key ^ " += " ^ string_of_value value
+  | Incr k -> "incr " ^ k
+  | Decr k -> "decr " ^ k
+  | Reload -> "reload"
+
 let mk_key key =
   match key_of_string key with
   | None -> invalid_arg "mk_key"

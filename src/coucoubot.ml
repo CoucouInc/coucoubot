@@ -7,9 +7,10 @@ let () = Lwt.async (fun () ->
 
 (******************************************************************************)
 
+let log msg = Lwt_io.printf "Log: %s\n%!" msg
+
 (* Logging *)
-let () = Signal.on' Core.messages (fun msg ->
-  Lwt_io.printf "Log: %s\n%!" (Irc_message.to_string msg))
+let () = Signal.on' Core.messages (fun msg -> log (Irc_message.to_string msg))
 
 (* Commandes + Factoids
 
@@ -56,7 +57,9 @@ let () = Signal.on' Core.privmsg (fun msg ->
     | Some (Factoids.Decr k) ->
       Factoids.St.decr k >>= count_update_message ~connection ~target k
     | Some (Factoids.Search l) ->
-      reply_value (Factoids.St.search l)
+      let res = Factoids.St.search l in
+      log (Printf.sprintf "search res: `%s`" (Factoids.string_of_value res)) >>= fun () ->
+      reply_value res
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () -> Talk.(talk ~target Ack)
   else Lwt.return ()

@@ -20,6 +20,9 @@ type op =
 
 val parse_op : string -> op option
 
+val string_of_value : value -> string
+val string_of_op : op -> string
+
 val empty : t
 
 val get : key -> t -> value
