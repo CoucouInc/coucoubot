@@ -11,13 +11,16 @@
     by callbacks defined in {!Social} (thanks to {!Signal.on}).
 *)
 
+type to_tell = {
+  from: string;
+  on_channel: string;
+  msg: string;
+}
+
 (* Data for contacts *)
 type contact = {
-  lastSeen: float;
-  to_tell: (string   (* from       *)
-            * string (* on channel *)
-            * string (* message    *)
-           ) list;
+  last_seen: float;
+  to_tell: to_tell list;
   coucous : int;
 }
 

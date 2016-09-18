@@ -4,14 +4,17 @@ open Containers
 module J = Yojson.Basic.Util
 type json = Yojson.Basic.json
 
+type to_tell = {
+  from: string;
+  on_channel: string;
+  msg: string;
+}
+
 (* Data for contacts *)
 type contact = {
-  lastSeen: float;
-  to_tell: (string   (* from       *)
-            * string (* on channel *)
-            * string (* message    *)
-           ) list;
-  coucous: int; (* coucou counter *)
+  last_seen: float;
+  to_tell: to_tell list;
+  coucous : int;
 }
 
 exception Bad_json
@@ -22,12 +25,12 @@ let contact_of_json (json: json): contact option =
     | `Null -> raise Bad_json
     | v -> v in
   try
-    { lastSeen = member "lastSeen" |> J.to_float;
+    { last_seen = member "lastSeen" |> J.to_float;
       to_tell =
         member "to_tell"
         |> J.convert_each (fun j ->
           match J.convert_each J.to_string j with
-          | [from_; on_channel; msg] -> (from_, on_channel, msg)
+          | [from; on_channel; msg] -> {from; on_channel; msg}
           | _ -> raise Bad_json);
       coucous = member "coucous" |> J.to_int_option |? 0
     } |> some
@@ -35,10 +38,10 @@ let contact_of_json (json: json): contact option =
 
 let json_of_contact (c: contact): json =
   `Assoc [
-    "lastSeen", `Float c.lastSeen;
+    "lastSeen", `Float c.last_seen;
     "to_tell", `List (
-      List.map (fun (from_, on_channel, msg) ->
-        `List [`String from_; `String on_channel; `String msg]
+      List.map (fun {from; on_channel; msg} ->
+        `List [`String from; `String on_channel; `String msg]
       ) c.to_tell
     );
     "coucous", `Int c.coucous
@@ -80,7 +83,7 @@ let sync () = write_db !contacts
 let new_contact nick =
   if not (is_contact nick) then
     set_data nick {
-      lastSeen = Unix.time ();
+      last_seen = Unix.time ();
       to_tell = [];
       coucous = 0;
     }
@@ -94,7 +97,7 @@ let data nick =
 (* Update lastSeen *)
 let () = Signal.on' Core.privmsg (fun msg ->
   set_data ~force_sync:false msg.Core.nick
-    {(data msg.Core.nick) with lastSeen = Unix.time ()};
+    {(data msg.Core.nick) with last_seen = Unix.time ()};
   Lwt.return ())
 
 (* Update coucous *)
@@ -140,8 +143,8 @@ let () = Signal.on' Core.messages (fun msg ->
     let contact = data nick in
     let to_tell = contact.to_tell |> List.rev in
     if to_tell <> [] then set_data nick {contact with to_tell = []};
-    Lwt_list.iter_s (fun (author, channel, message) ->
-      if is_coucou message then incr_coucous Config.nick;
-      Irc.send_privmsg ~connection ~target:channel
-        ~message:(Printf.sprintf "%s: (from %s): %s" nick author message))
+    Lwt_list.iter_s (fun {from=author; on_channel; msg} ->
+      if is_coucou msg then incr_coucous Config.nick;
+      Irc.send_privmsg ~connection ~target:on_channel
+        ~message:(Printf.sprintf "%s: (from %s): %s" nick author msg))
       to_tell)

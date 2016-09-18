@@ -29,7 +29,7 @@ let tell (_: Irc.connection_t) channel nick s =
     Social.(
       set_data dest
         {(data dest) with
-         to_tell = (nick, channel, msg) :: (data dest).to_tell}
+           to_tell = {from=nick; on_channel=channel; msg} :: (data dest).to_tell}
     );
     Talk.(talk ~target:channel Ack)
   with _ -> Lwt.return ()
