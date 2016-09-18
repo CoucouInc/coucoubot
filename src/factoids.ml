@@ -13,6 +13,7 @@ type json = Yojson.Safe.json
 type op =
   | Get of key
   | Set of factoid
+  | Search of string list (* space separated tokens *)
   | Append of factoid
   | Incr of key
   | Decr of key
@@ -34,12 +35,20 @@ let mk_factoid key value =
   try {key; value = Int (int_of_string value)}
   with Failure _ -> {key; value = StrList [value]}
 
+let mk_search s =
+  let tokens =
+    Str.split (Str.regexp "[ \t]*") s
+    |> List.map String.lowercase
+  in
+  Search tokens
+
 let re_set = Str.regexp "^!\\([^!=+-]*\\)\\=\\(.*\\)$"
 let re_append = Str.regexp "^!\\([^!=+-]*\\)\\+=\\(.*\\)$"
 let re_get = Str.regexp "^!\\([^!=+-]*\\)$"
 let re_reload = Str.regexp "^![ ]*reload[ ]*$"
 let re_incr = Str.regexp "^!\\([^!=+-]*\\)\\+\\+[ ]*$"
 let re_decr = Str.regexp "^!\\([^!=+-]*\\)--[ ]*$"
+let re_search = Str.regexp "^![ ]*search[ ]*\\(.*\\)[ ]*$"
 
 let parse_op msg : op option =
   let open Option in
@@ -57,6 +66,8 @@ let parse_op msg : op option =
   (re_match1 mk_incr re_incr msg)
   <+>
   (re_match1 mk_decr re_decr msg)
+  <+>
+  (re_match1 mk_search re_search msg)
   <+>
   (if Str.string_match re_reload msg 0 then Some Reload else None)
 
@@ -115,6 +126,26 @@ let decr key (fcs:t): int option * t =
     let count = i - 1 in
     (Some count, StrMap.add key {key; value = Int count} fcs)
   | _ -> (None, fcs)
+
+let search tokens (fcs:t): value =
+  (* does the pair [key, value] match the given token? *)
+  let tok_matches key value tok =
+    key=tok ||
+    begin match value with
+      | Int i -> key = string_of_int i
+      | StrList l ->
+        List.exists (CCString.mem ~sub:tok) l
+    end
+  in
+  let choices =
+    StrMap.fold
+      (fun _ {key; value} choices ->
+         if List.for_all (tok_matches key value) tokens
+         then ("!"^key) :: choices
+         else choices)
+      fcs []
+  in
+  StrList choices
 
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: json): t option =
@@ -199,6 +230,8 @@ module St = struct
     let (count, state') = decr k !state in
     state := state';
     save_ () >|= fun _ -> count
+
+  let search tokens = search tokens !state
 
   let reload () =
     read_file ~file:Config.factoids_file >|= fun fs ->

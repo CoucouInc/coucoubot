@@ -33,19 +33,20 @@ let () = Signal.on' Core.privmsg (fun msg ->
   ) false Commands.commands >>= fun cmd_matched ->
 
   if not cmd_matched then
+    let reply_value (v:Factoids.value): unit Lwt.t = match v with
+      | Factoids.Int i ->
+        Irc.send_privmsg ~connection ~target ~message:(string_of_int i)
+      | Factoids.StrList [] -> Lwt.return_unit
+      | Factoids.StrList [message] ->
+        Irc.send_privmsg ~connection ~target ~message
+      | Factoids.StrList l ->
+        let message = DistribM.uniform l |> DistribM.run in
+        Irc.send_privmsg ~connection ~target ~message
+    in
     match Factoids.parse_op msg.Core.message with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
-      begin match Factoids.St.get k with
-        | Factoids.Int i ->
-          Irc.send_privmsg ~connection ~target ~message:(string_of_int i)
-        | Factoids.StrList [] -> Lwt.return_unit
-        | Factoids.StrList [message] ->
-          Irc.send_privmsg ~connection ~target ~message
-        | Factoids.StrList l ->
-          let message = DistribM.uniform l |> DistribM.run in
-          Irc.send_privmsg ~connection ~target ~message
-      end
+      reply_value (Factoids.St.get k)
     | Some (Factoids.Set f) ->
       Factoids.St.set f >>= fun () -> Talk.(talk ~target Ack)
     | Some (Factoids.Append f) ->
@@ -54,6 +55,8 @@ let () = Signal.on' Core.privmsg (fun msg ->
       Factoids.St.incr k >>= count_update_message ~connection ~target k
     | Some (Factoids.Decr k) ->
       Factoids.St.decr k >>= count_update_message ~connection ~target k
+    | Some (Factoids.Search l) ->
+      reply_value (Factoids.St.search l)
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () -> Talk.(talk ~target Ack)
   else Lwt.return ()

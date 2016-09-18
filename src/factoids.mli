@@ -12,6 +12,7 @@ val key_of_string : string -> key option
 type op =
   | Get of key
   | Set of factoid
+  | Search of string list (* space separated tokens *)
   | Append of factoid
   | Incr of key
   | Decr of key
@@ -26,6 +27,7 @@ val set : factoid -> t -> t
 val append : factoid -> t -> t
 val incr : key -> t -> int option * t
 val decr : key -> t -> int option * t
+val search : string list -> t -> value
 
 val read_file : file:string -> t Lwt.t
 val write_file : file:string -> t -> unit Lwt.t
@@ -35,6 +37,7 @@ val write_file : file:string -> t -> unit Lwt.t
 module St : sig
   val get : key -> value
   val set : factoid -> unit Lwt.t
+  val search : string list -> value
   val append : factoid -> unit Lwt.t
   val incr : key -> int option Lwt.t
   val decr : key -> int option Lwt.t
