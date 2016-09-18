@@ -1,14 +1,14 @@
-(* Social : garde un registre "nick -> informations" et les met à jour. On peut
-   étendre le type Social.contact pour mémoriser de nouvelles informations. 
 
-   Il faut alors penser à mettre à jour les fonctions contacts_of_json et
-   json_of_contact pour gérer les nouveaux champs (et gérer le cas où on importe
-   du json qui n'a pas les nouveaux champs; dans ce cas mettre une valeur par
-   défaut bien choisie pour les nouveaux champs).
+(** Social: keeps a register "nick -> informations" up-to-date.
+    The type {!contact} can be extended to store new informations.
 
-   Les informations contenues dans la base de contacts sont usuellement
-   automatiquement mises à jour par des callbacks définis dans social.ml (grâce
-   à [Signal.on']).
+    One must then extend the function {!contacts_of_json}
+    and {!json_of_contact} to handle the new fields (and deal with the
+    case where we import old JSON values that don't have the new
+    fields, e.g. by using a default value).
+
+    The data stored in the contacts base are usually automatically updated
+    by callbacks defined in {!Social} (thanks to {!Signal.on}).
 *)
 
 (* Data for contacts *)
