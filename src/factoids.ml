@@ -151,7 +151,9 @@ let search tokens (fcs:t): value =
     begin match value with
       | Int i -> key = string_of_int i
       | StrList l ->
-        List.exists (CCString.mem ~sub:tok) l
+        List.exists
+          (fun s -> CCString.mem ~sub:tok (String.lowercase s))
+          l
     end
   in
   let choices =
