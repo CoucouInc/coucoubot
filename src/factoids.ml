@@ -147,7 +147,7 @@ let decr key (fcs:t): int option * t =
 let search tokens (fcs:t): value =
   (* does the pair [key, value] match the given token? *)
   let tok_matches key value tok =
-    key=tok ||
+    CCString.mem ~sub:tok key ||
     begin match value with
       | Int i -> key = string_of_int i
       | StrList l ->
