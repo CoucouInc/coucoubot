@@ -7,10 +7,10 @@ let () = Lwt.async (fun () ->
 
 (******************************************************************************)
 
-let log msg = Lwt_io.printf "Log: %s\n%!" msg
-
-(* Logging *)
-let () = Signal.on' Core.messages (fun msg -> log (Irc_message.to_string msg))
+(* Logging incoming messages *)
+let () =
+  Signal.on' Core.messages
+    (fun msg -> Log.log (Irc_message.to_string msg) |> Lwt.return)
 
 (* Commandes + Factoids
 
@@ -44,7 +44,9 @@ let () = Signal.on' Core.privmsg (fun msg ->
         let message = DistribM.uniform l |> DistribM.run in
         Irc.send_privmsg ~connection ~target ~message
     in
-    match Factoids.parse_op msg.Core.message with
+    let op = Factoids.parse_op msg.Core.message in
+    CCOpt.iter (fun c -> Log.logf "parsed command `%s`" (Factoids.string_of_op c)) op;
+    match op with
     | None -> Lwt.return_unit
     | Some (Factoids.Get k) ->
       reply_value (Factoids.St.get k)
@@ -57,9 +59,7 @@ let () = Signal.on' Core.privmsg (fun msg ->
     | Some (Factoids.Decr k) ->
       Factoids.St.decr k >>= count_update_message ~connection ~target k
     | Some (Factoids.Search l) ->
-      let res = Factoids.St.search l in
-      log (Printf.sprintf "search res: `%s`" (Factoids.string_of_value res)) >>= fun () ->
-      reply_value res
+      reply_value (Factoids.St.search l)
     | Some Factoids.Reload ->
       Factoids.St.reload () >>= fun () -> Talk.(talk ~target Ack)
   else Lwt.return ()
