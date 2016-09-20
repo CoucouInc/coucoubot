@@ -24,8 +24,7 @@ let key_of_string s : key option =
 
 let string_of_value = function
   | Int i -> string_of_int i
-  | StrList l ->
-    "[" ^ String.concat "," l ^ "]"
+  | StrList l -> Prelude.string_list_to_string l
 
 let string_of_op = function
   | Get k -> "get " ^ k
@@ -243,6 +242,18 @@ let cmd_search state =
        search tokens state.st_cur |> msg_of_value |> Lwt.return
     )
 
+let cmd_see state =
+  Command.make_simple ~descr:"see a factoid's content" ~prefix:"see" ~prio:10
+    (fun _ s ->
+       let v = get (mk_key s) state.st_cur in
+       let msg = match v with
+         | Int i -> string_of_int i
+         | StrList [] -> "not found."
+         | StrList l -> Prelude.string_list_to_string l
+       in
+       Some msg |> Lwt.return
+    )
+
 let cmd_reload state =
   Command.make_simple ~descr:"reload factoids" ~prefix:"reload" ~prio:10
     (fun _ _ ->
@@ -297,6 +308,7 @@ let commands state: Command.t list =
   [ cmd_factoids state;
     cmd_search state;
     cmd_reload state;
+    cmd_see state;
   ]
 
 let plugin : Plugin.t =
