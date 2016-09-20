@@ -101,9 +101,12 @@ let data state nick =
 let is_coucou msg =
   contains msg (Str.regexp "coucou")
 
-let incr_coucous state nick =
+let shift_coucou ~by state nick =
   let d = data state nick in
-  set_data state ~force_sync:false nick {d with coucous = d.coucous + 1}
+  set_data state ~force_sync:false nick {d with coucous = d.coucous + by}
+
+let incr_coucou = shift_coucou ~by:1
+let decr_coucou = shift_coucou ~by:~-1
 
 (* Write the db to the disk periodically.
 
@@ -177,10 +180,9 @@ let on_message (module C:Core.S) state msg =
     let contact = data state nick in
     let to_tell = contact.to_tell |> List.rev in
     if to_tell <> [] then set_data state nick {contact with to_tell = []};
-    Lwt_list.iter_s (fun {from=author; on_channel; msg} ->
-      if is_coucou msg then incr_coucous state nick;
+    Lwt_list.iter_s (fun {from=author; on_channel; msg=m} ->
       C.send_privmsg ~target:on_channel
-        ~message:(Printf.sprintf "%s: (from %s): %s" nick author msg))
+        ~message:(Printf.sprintf "%s: (from %s): %s" nick author m))
       to_tell
 
 let plugin =
@@ -195,8 +197,12 @@ let plugin =
     (* update coucou *)
     Signal.on' C.privmsg
       (fun msg ->
-         if is_coucou msg.Core.message
-         then incr_coucous state msg.Core.nick;
+         let target = Core.reply_to msg in
+         if is_coucou msg.Core.message then (
+           if Core.is_chan target
+           then incr_coucou state msg.Core.nick
+           else decr_coucou state msg.Core.nick
+         );
          Lwt.return ());
     (* notify users *)
     Signal.on' C.messages (on_message core state);

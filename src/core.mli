@@ -11,6 +11,9 @@ type privmsg = {
   message: string;
 }
 
+val is_chan : string -> bool
+(** Is this a valid chan name? *)
+
 val reply_to : privmsg -> string
 (** find whom to reply to *)
 
