@@ -153,6 +153,19 @@ let search tokens (fcs:t): value =
   in
   StrList [Prelude.string_list_to_string matches]
 
+let random (fcs:t): string =
+  let l = StrMap.to_list fcs in
+  match l with
+    | [] -> ""
+    | _ ->
+      let _, fact = DistribM.uniform l |> DistribM.run in
+      let msg_val = match fact.value with
+        | StrList [] -> assert false
+        | StrList l -> DistribM.uniform l |> DistribM.run
+        | Int i -> string_of_int i
+      in
+      Printf.sprintf "!%s: %s" fact.key msg_val
+
 (* parsing/outputting the factoids json *)
 let factoids_of_json (json: json): t option =
   try
@@ -254,6 +267,13 @@ let cmd_see state =
        Some msg |> Lwt.return
     )
 
+let cmd_random state =
+  Command.make_simple ~descr:"random factoid" ~prefix:"random" ~prio:10
+    (fun _ _ ->
+       let msg = random state.st_cur in
+       Some msg |> Lwt.return
+    )
+
 let cmd_reload state =
   Command.make_simple ~descr:"reload factoids" ~prefix:"reload" ~prio:10
     (fun _ _ ->
@@ -309,10 +329,10 @@ let commands state: Command.t list =
     cmd_search state;
     cmd_reload state;
     cmd_see state;
+    cmd_random state;
   ]
 
 let plugin : Plugin.t =
-  let module P = Plugin in
   (* create state *)
   let cleanup state = save state in
-  P.stateful ~init ~stop:cleanup commands
+  Plugin.stateful ~init ~stop:cleanup commands
