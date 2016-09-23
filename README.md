@@ -32,3 +32,7 @@ Coucou coucou
   (regarder talk.mli et talk.ml)
 
 - ...
+
+## License
+
+MIT (voir `LICENSE`)
