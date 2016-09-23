@@ -212,7 +212,9 @@ let plugin =
   and stop state =
     write_db !state |> Lwt.return
   and commands state =
-    [ cmd_tell state; cmd_coucou state ]
+    [ cmd_tell state;
+      (* cmd_coucou state; *)
+    ]
   in
   Plugin.stateful ~init ~stop commands
 
