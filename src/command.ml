@@ -19,7 +19,7 @@ let make ?(descr="") ?(prio=99) ~name f =
   { descr; prio; name; match_=f; }
 
 let match_prefix1 ~prefix msg =
-  let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]*\\(.*\\)$" prefix) in
+  let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]+\\(.*\\)$" prefix) in
   Prelude.re_match1 Prelude.id re msg.Core.message
 
 exception Fail of string
