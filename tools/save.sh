@@ -2,6 +2,8 @@
 
 mkdir -p backups/
 for i in $@ ; do
-  cp "$i" "backups/$i-`date -I`";
+  TARGET="backups/$i-`date -I`"
+  cp "$i" "$TARGET";
+  gzip "$TARGET";
 done
 
