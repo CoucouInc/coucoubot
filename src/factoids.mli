@@ -12,6 +12,7 @@ val key_of_string : string -> key option
 type op =
   | Get of key
   | Set of factoid
+  | Set_force of factoid
   | Append of factoid
   | Incr of key
   | Decr of key
@@ -23,6 +24,7 @@ val string_of_op : op -> string
 
 val empty : t
 
+val mem : key -> t -> bool
 val get : key -> t -> value
 val set : factoid -> t -> t
 val append : factoid -> t -> t

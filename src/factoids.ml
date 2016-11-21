@@ -13,6 +13,7 @@ type json = Yojson.Safe.json
 type op =
   | Get of key
   | Set of factoid
+  | Set_force of factoid
   | Append of factoid
   | Incr of key
   | Decr of key
@@ -29,6 +30,7 @@ let string_of_value = function
 let string_of_op = function
   | Get k -> "get " ^ k
   | Set {key;value} -> "set " ^ key ^ " := " ^ string_of_value value
+  | Set_force {key;value} -> "set_force " ^ key ^ " := " ^ string_of_value value
   | Append {key;value} -> "append " ^ key ^ " += " ^ string_of_value value
   | Incr k -> "incr " ^ k
   | Decr k -> "decr " ^ k
@@ -45,6 +47,7 @@ let mk_factoid key value =
   with Failure _ -> {key; value = StrList [value]}
 
 let re_set = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*=\\(.*\\)$"
+let re_set_force = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*:=\\(.*\\)$"
 let re_append = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+=\\(.*\\)$"
 let re_get = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*$"
 let re_incr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+\\+[ ]*$"
@@ -54,12 +57,15 @@ let parse_op msg : op option =
   let open Option in
   let mk_get k = Get (mk_key k) in
   let mk_set k v = Set (mk_factoid k v) in
+  let mk_set_force k v = Set_force (mk_factoid k v) in
   let mk_append k v = Append (mk_factoid k v) in
   let mk_incr k = Incr (mk_key k) in
   let mk_decr k = Decr (mk_key k) in
   (re_match2 mk_append re_append msg)
   <+>
   (re_match2 mk_set re_set msg)
+  <+>
+  (re_match2 mk_set_force re_set_force msg)
   <+>
   (re_match1 mk_get re_get msg)
   <+>
@@ -94,6 +100,8 @@ let as_value (j: json) : value = match j with
 let get key (fcs:t) : value =
   try (StrMap.find key fcs).value
   with Not_found -> StrList []
+
+let mem key (fcs:t) : bool = StrMap.mem key fcs
 
 let set ({key;_} as f) (fcs:t): t =
   StrMap.add key f fcs
@@ -149,7 +157,7 @@ let search tokens (fcs:t): value =
       | [k,v] -> [k ^ " -> " ^ string_of_value v] (* keep result *)
       | l -> List.map fst l
     )
-    
+
   in
   StrList [Prelude.string_list_to_string matches]
 
@@ -305,6 +313,13 @@ let cmd_factoids state =
       | Some (Get k) ->
         reply_value (get k state.st_cur)
       | Some (Set f) ->
+        if mem f.key state.st_cur then (
+          C.talk ~target Talk.Err |> matched
+        ) else (
+          state.st_cur <- set f state.st_cur;
+          (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
+        )
+      | Some (Set_force f) ->
         state.st_cur <- set f state.st_cur;
         (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
       | Some (Append f) ->
@@ -322,7 +337,15 @@ let cmd_factoids state =
     end
   in
   Command.make
-    ~descr:"factoids" ~name:"factoids" ~prio:80 reply
+    ~name:"factoids" ~prio:80 reply
+    ~descr:"factoids, triggered by the following commands:
+
+    - `!foo` will retrieve one of the factoids associated with `foo`, if any
+    - `!foo = bar` maps `foo` to `bar`, unless `foo` is mapped yet
+      (in which case it fails)
+    - `!foo += bar` adds `bar` to the mappings of `foo`
+    - `!foo := bar` maps `foo` to `bar` even if `foo` is already mapped
+    "
 
 let commands state: Command.t list =
   [ cmd_factoids state;
