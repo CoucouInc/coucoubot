@@ -294,17 +294,17 @@ let cmd_factoids state =
     let matched x = Command.Cmd_match x in
     let reply_value (v:value) = match v with
       | Int i ->
-        C.send_notice ~target ~message:(string_of_int i) |> matched
+        C.send_privmsg ~target ~message:(string_of_int i) |> matched
       | StrList [] -> Lwt.return_unit |> matched
       | StrList [message] ->
-        C.send_notice ~target ~message |> matched
+        C.send_privmsg ~target ~message |> matched
       | StrList l ->
         let message = DistribM.uniform l |> DistribM.run in
-        C.send_notice ~target ~message |> matched
+        C.send_privmsg ~target ~message |> matched
     and count_update_message (k: key) = function
       | None -> Lwt.return_unit
       | Some count ->
-        C.send_notice ~target
+        C.send_privmsg ~target
           ~message:(Printf.sprintf "%s : %d" (k :> string) count)
     in
     let op = parse_op msg.Core.message in
