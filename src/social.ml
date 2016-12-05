@@ -181,7 +181,7 @@ let on_message (module C:Core.S) state msg =
     let to_tell = contact.to_tell |> List.rev in
     if to_tell <> [] then set_data state nick {contact with to_tell = []};
     Lwt_list.iter_s (fun {from=author; on_channel; msg=m} ->
-      C.send_privmsg ~target:on_channel
+      C.send_notice ~target:on_channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author m))
       to_tell
 

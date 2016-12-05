@@ -32,7 +32,7 @@ let make_simple_l ?descr ?prio ~prefix f : t =
         try
           let fut =
             f msg sub >>= fun lines ->
-            C.send_privmsg_l ~target:(Core.reply_to msg)
+            C.send_notice_l ~target:(Core.reply_to msg)
               ~messages:lines
           in
           Cmd_match fut
