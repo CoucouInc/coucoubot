@@ -47,6 +47,9 @@ module type S = sig
 
   val privmsg : privmsg Signal.t
 
+  val line_cut_threshold : int ref
+  (** Above [!line_cut_threshold], multi-line messages are cut with "..." *)
+
   val send_privmsg_l :
     target:string -> messages:string list -> unit Lwt.t
 
@@ -83,6 +86,8 @@ let of_conn c : t =
     let messages = Signal.create ()
     let privmsg = Signal.filter_map messages privmsg_of_msg
 
+    let line_cut_threshold = ref 10
+
     let run =
       _conn >>= fun connection ->
       Irc_client_lwt.listen ~connection
@@ -101,7 +106,7 @@ let of_conn c : t =
       (* keep at most 4 *)
       let lines =
         let len = List.length lines in
-        if len > 4
+        if len > !line_cut_threshold
         then CCList.take 4 lines @ [Printf.sprintf "(…%d more lines…)" (len-4)]
         else lines
       in
@@ -114,15 +119,19 @@ let of_conn c : t =
       let nl = Str.regexp_string "\n" in
       Str.split nl s
 
-    let send_privmsg_l = process_list_ ~f:Irc_client_lwt.send_privmsg
+    let flat_map f l = List.map f l |> List.flatten
 
-    let send_notice_l = process_list_ ~f:Irc_client_lwt.send_notice
+    let send_privmsg_l ~target ~messages =
+      process_list_ ~f:Irc_client_lwt.send_privmsg ~target ~messages:(flat_map split_lines_ messages)
+
+    let send_notice_l ~target ~messages =
+      process_list_ ~f:Irc_client_lwt.send_notice ~target ~messages:(flat_map split_lines_ messages)
 
     let send_privmsg ~target ~message =
-      send_privmsg_l ~target ~messages:(split_lines_ message)
+      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc_client_lwt.send_privmsg
 
     let send_notice ~target ~message =
-      send_notice_l ~target ~messages:(split_lines_ message)
+      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc_client_lwt.send_notice
 
     let send_join ~channel =
       connection >>= fun c ->

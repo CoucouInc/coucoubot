@@ -33,6 +33,9 @@ module type S = sig
 
   val privmsg : privmsg Signal.t
 
+  val line_cut_threshold : int ref
+  (** Above [!line_cut_threshold], multi-line messages are cut with "..." *)
+
   val send_privmsg_l :
     target:string -> messages:string list -> unit Lwt.t
 
