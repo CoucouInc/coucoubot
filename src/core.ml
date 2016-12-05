@@ -54,6 +54,13 @@ module type S = sig
     target:string -> message:string -> unit Lwt.t
   (** Helper for sending messages, splitting lines, etc. *)
 
+  val send_notice_l :
+    target:string -> messages:string list -> unit Lwt.t
+
+  val send_notice :
+    target:string -> message:string -> unit Lwt.t
+  (** Helper for sending notices, splitting lines, etc. *)
+
   val send_join : channel:string -> unit Lwt.t
 
   val talk : target:string -> Talk.t -> unit Lwt.t
@@ -90,7 +97,7 @@ let of_conn c : t =
       _conn >>= fun conn ->
       Lwt.return conn
 
-    let send_privmsg_l ~target ~messages:lines =
+    let process_list_ ~f ~target ~messages:lines =
       (* keep at most 4 *)
       let lines =
         let len = List.length lines in
@@ -100,13 +107,22 @@ let of_conn c : t =
       in
       connection >>= fun c ->
       Lwt_list.iter_s
-        (fun message -> Irc_client_lwt.send_privmsg ~connection:c ~target ~message)
+        (fun message -> f ~connection:c ~target ~message)
         lines
 
-    let send_privmsg ~target ~message =
+    let split_lines_ s =
       let nl = Str.regexp_string "\n" in
-      let lines = Str.split nl message in
-      send_privmsg_l ~target ~messages:lines
+      Str.split nl s
+
+    let send_privmsg_l = process_list_ ~f:Irc_client_lwt.send_privmsg
+
+    let send_notice_l = process_list_ ~f:Irc_client_lwt.send_notice
+
+    let send_privmsg ~target ~message =
+      send_privmsg_l ~target ~messages:(split_lines_ message)
+
+    let send_notice ~target ~message =
+      send_notice_l ~target ~messages:(split_lines_ message)
 
     let send_join ~channel =
       connection >>= fun c ->

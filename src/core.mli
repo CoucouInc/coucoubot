@@ -40,6 +40,13 @@ module type S = sig
     target:string -> message:string -> unit Lwt.t
   (** Helper for sending messages, splitting lines, etc. *)
 
+  val send_notice_l :
+    target:string -> messages:string list -> unit Lwt.t
+
+  val send_notice :
+    target:string -> message:string -> unit Lwt.t
+  (** Helper for sending notices, splitting lines, etc. *)
+
   val send_join : channel:string -> unit Lwt.t
 
   val talk : target:string -> Talk.t -> unit Lwt.t
