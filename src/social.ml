@@ -162,6 +162,13 @@ let cmd_coucou state =
          Lwt.return (Some message)
     )
 
+let cmd_reload state =
+  Command.make_simple ~descr:"reload socialdb" ~prefix:"reload_social" ~prio:10
+    (fun _ _ ->
+       let new_db = read_db() in
+       state := new_db;
+       Lwt.return_some (Talk.select Talk.Ack)
+    )
 
 (* callback to update state, notify users of their messages, etc. *)
 let on_message (module C:Core.S) state msg =
@@ -212,7 +219,10 @@ let plugin =
   and stop state =
     write_db !state |> Lwt.return
   and commands state =
-    [ cmd_tell state; cmd_coucou state ]
+    [ cmd_tell state;
+      cmd_coucou state;
+      cmd_reload state;
+    ]
   in
   Plugin.stateful ~init ~stop commands
 
