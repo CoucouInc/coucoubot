@@ -12,6 +12,9 @@ let get_nick h =
 
 let id x = x
 let some x = Some x
+let map_opt f = function
+  | None -> None
+  | Some x -> Some (f x)
 
 let (|?) o x = match o with
   | None -> x

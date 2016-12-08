@@ -18,20 +18,43 @@ type t = {
 let make ?(descr="") ?(prio=99) ~name f =
   { descr; prio; name; match_=f; }
 
-let match_prefix1 ~prefix msg =
+(* @returns [Some (msg, hl)] if [msg] matches the regex,
+   and [hl] is either [Some foo] if the message ended with "> hl",
+   [None] otherwise *)
+let match_prefix1_full ~prefix msg : (string * string option) option =
   let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]*\\(.*\\)$" prefix) in
-  Prelude.re_match1 Prelude.id re msg.Core.message
+  match Prelude.re_match1 Prelude.id re msg.Core.message with
+    | None -> None
+    | Some matched ->
+      let matched = String.trim matched in
+      try
+        let i = String.rindex matched '>' in
+        if i>0 then (
+          let matched = String.sub matched 0 i in
+          let hl = String.sub matched (i+1) (String.length matched-i-1) in
+          Some (matched, Some hl)
+        )
+        else Some (matched, None)
+      with Not_found ->
+        Some (matched, None)
+
+let match_prefix1 ~prefix msg =
+  Prelude.map_opt fst (match_prefix1_full ~prefix msg)
 
 exception Fail of string
 
 let make_simple_l ?descr ?prio ~prefix f : t =
   let match_ (module C:Core.S) msg =
-    match match_prefix1 ~prefix msg with
+    match match_prefix1_full ~prefix msg with
       | None -> Cmd_skip
-      | Some sub ->
+      | Some (sub, hl) ->
         try
           let fut =
             f msg sub >>= fun lines ->
+            let lines = match hl with
+              | None -> lines
+              | Some hl -> List.map (fun line -> hl ^ ": " ^ line) lines
+            in
             C.send_privmsg_l ~target:(Core.reply_to msg)
               ~messages:lines
           in
