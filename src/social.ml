@@ -116,7 +116,7 @@ let decr_coucou = shift_coucou ~by:~-1
 *)
 let save_thread state =
   let rec loop () =
-    Lwt_unix.sleep 30. >>= fun () ->
+    Lwt_unix.sleep 300. >>= fun () ->
     sync state; loop ()
   in
   Lwt.async loop
