@@ -163,7 +163,7 @@ let cmd_coucou state =
     )
 
 let cmd_reload state =
-  Command.make_simple ~descr:"reload socialdb" ~prefix:"reload_social" ~prio:10
+  Command.make_simple ~descr:"reload socialdb" ~prefix:"social_reload" ~prio:10
     (fun _ _ ->
        let new_db = read_db() in
        state := new_db;
@@ -217,6 +217,7 @@ let plugin =
     save_thread state;
     Lwt.return state
   and stop state =
+    (* TODO: stop saving thread? *)
     write_db !state |> Lwt.return
   and commands state =
     [ cmd_tell state;
