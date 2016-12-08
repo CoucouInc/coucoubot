@@ -18,9 +18,6 @@ type t = {
 let make ?(descr="") ?(prio=99) ~name f =
   { descr; prio; name; match_=f; }
 
-(* @returns [Some (msg, hl)] if [msg] matches the regex,
-   and [hl] is either [Some foo] if the message ended with "> hl",
-   [None] otherwise *)
 let match_prefix1_full ~prefix msg : (string * string option) option =
   let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]*\\(.*\\)$" prefix) in
   match Prelude.re_match1 Prelude.id re msg.Core.message with
@@ -29,9 +26,11 @@ let match_prefix1_full ~prefix msg : (string * string option) option =
       let matched = String.trim matched in
       try
         let i = String.rindex matched '>' in
-        if i>0 then (
-          let matched = String.sub matched 0 i in
-          let hl = String.sub matched (i+1) (String.length matched-i-1) in
+        if i>0 && i < String.length matched-1 then (
+          let hl =
+            String.sub matched (i+1) (String.length matched-i-1) |> String.trim
+          in
+          let matched = String.sub matched 0 i |> String.trim in
           Some (matched, Some hl)
         )
         else Some (matched, None)
