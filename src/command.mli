@@ -24,6 +24,10 @@ val match_prefix1 : prefix:string -> Core.privmsg -> string option
     - if [msg="!something else"], returns [None]
   *)
 
+val extract_hl : string -> (string * string) option
+(** [extract_hl "foo > bar" returns [Some ("foo", "bar")].
+    Returns [None] if it cannot split on ">" cleanly. *)
+
 val match_prefix1_full : prefix:string -> Core.privmsg -> (string * string option) option
 (* @returns [Some (msg, hl)] if [msg] matches the regex,
    and [hl] is either [Some foo] if the message ended with "> hl",

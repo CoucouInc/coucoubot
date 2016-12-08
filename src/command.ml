@@ -18,24 +18,28 @@ type t = {
 let make ?(descr="") ?(prio=99) ~name f =
   { descr; prio; name; match_=f; }
 
+let extract_hl s =
+  try
+    let i = String.rindex s '>' in
+    if i>0 && i < String.length s-1 then (
+      let hl =
+        String.sub s (i+1) (String.length s-i-1) |> String.trim
+      in
+      let s = String.sub s 0 i |> String.trim in
+      Some (s, hl)
+    ) else None
+  with Not_found -> None
+
 let match_prefix1_full ~prefix msg : (string * string option) option =
   let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]*\\(.*\\)$" prefix) in
-  match Prelude.re_match1 Prelude.id re msg.Core.message with
+  begin match Prelude.re_match1 Prelude.id re msg.Core.message with
     | None -> None
     | Some matched ->
       let matched = String.trim matched in
-      try
-        let i = String.rindex matched '>' in
-        if i>0 && i < String.length matched-1 then (
-          let hl =
-            String.sub matched (i+1) (String.length matched-i-1) |> String.trim
-          in
-          let matched = String.sub matched 0 i |> String.trim in
-          Some (matched, Some hl)
-        )
-        else Some (matched, None)
-      with Not_found ->
-        Some (matched, None)
+      match extract_hl matched with
+        | None -> Some (matched, None)
+        | Some (a,b) -> Some (a, Some b)
+  end
 
 let match_prefix1 ~prefix msg =
   Prelude.map_opt fst (match_prefix1_full ~prefix msg)

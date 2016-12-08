@@ -53,7 +53,11 @@ let re_get = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*$"
 let re_incr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*\\+\\+[ ]*$"
 let re_decr = Str.regexp "^![ ]*\\([^!=+ -]+\\)[ ]*--[ ]*$"
 
-let parse_op msg : op option =
+let parse_op msg : (op * string option) option =
+  let msg, hl = match Command.extract_hl msg with
+    | None -> msg, None
+    | Some (a,b) -> a, Some b
+  in
   let open Option in
   let mk_get k = Get (mk_key k) in
   let mk_set k v = Set (mk_factoid k v) in
@@ -61,19 +65,21 @@ let parse_op msg : op option =
   let mk_append k v = Append (mk_factoid k v) in
   let mk_incr k = Incr (mk_key k) in
   let mk_decr k = Decr (mk_key k) in
-  (re_match2 mk_append re_append msg)
-  <+>
-  (re_match2 mk_set re_set msg)
-  <+>
-  (re_match2 mk_set_force re_set_force msg)
-  <+>
-  (re_match1 mk_get re_get msg)
-  <+>
-  (re_match1 mk_incr re_incr msg)
-  <+>
-  (re_match1 mk_decr re_decr msg)
-  <+>
-  None
+  (
+    (re_match2 mk_append re_append msg)
+    <+>
+      (re_match2 mk_set re_set msg)
+    <+>
+      (re_match2 mk_set_force re_set_force msg)
+    <+>
+      (re_match1 mk_get re_get msg)
+    <+>
+      (re_match1 mk_incr re_incr msg)
+    <+>
+      (re_match1 mk_decr re_decr msg)
+    <+>
+      None
+  ) |> Prelude.map_opt (fun x->x, hl)
 
 (* read the json file *)
 let read_json (file:string) : json option Lwt.t =
@@ -292,14 +298,18 @@ let cmd_factoids state =
   let reply (module C:Core.S) msg =
     let target = Core.reply_to msg in
     let matched x = Command.Cmd_match x in
-    let reply_value (v:value) = match v with
+    let add_hl hl line = match hl with
+      | None -> line
+      | Some x -> x ^ ": " ^ line
+    in
+    let reply_value ~hl (v:value) = match v with
       | Int i ->
-        C.send_privmsg ~target ~message:(string_of_int i) |> matched
+        C.send_privmsg ~target ~message:(string_of_int i |> add_hl hl) |> matched
       | StrList [] -> Lwt.return_unit |> matched
       | StrList [message] ->
-        C.send_privmsg ~target ~message |> matched
+        C.send_privmsg ~target ~message:(add_hl hl message) |> matched
       | StrList l ->
-        let message = DistribM.uniform l |> DistribM.run in
+        let message = DistribM.uniform l |> DistribM.run |> add_hl hl in
         C.send_privmsg ~target ~message |> matched
     and count_update_message (k: key) = function
       | None -> Lwt.return_unit
@@ -308,28 +318,28 @@ let cmd_factoids state =
           ~message:(Printf.sprintf "%s : %d" (k :> string) count)
     in
     let op = parse_op msg.Core.message in
-    CCOpt.iter (fun c -> Log.logf "parsed command `%s`" (string_of_op c)) op;
+    CCOpt.iter (fun (c,_) -> Log.logf "parsed command `%s`" (string_of_op c)) op;
     begin match op with
-      | Some (Get k) ->
-        reply_value (get k state.st_cur)
-      | Some (Set f) ->
+      | Some (Get k, hl) ->
+        reply_value ~hl (get k state.st_cur)
+      | Some (Set f, _) ->
         if mem f.key state.st_cur then (
           C.talk ~target Talk.Err |> matched
         ) else (
           state.st_cur <- set f state.st_cur;
           (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
         )
-      | Some (Set_force f) ->
+      | Some (Set_force f, _) ->
         state.st_cur <- set f state.st_cur;
         (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
-      | Some (Append f) ->
+      | Some (Append f, _) ->
         state.st_cur <- append f state.st_cur;
         (save state >>= fun () -> C.talk ~target Talk.Ack) |> matched
-      | Some (Incr k) ->
+      | Some (Incr k, _) ->
         let count, state' = incr k state.st_cur in
         state.st_cur <- state';
         (save state >>= fun () -> count_update_message k count) |> matched
-      | Some (Decr k) ->
+      | Some (Decr k, _) ->
         let count, state' = decr k state.st_cur in
         state.st_cur <- state';
         (save state >>= fun () -> count_update_message k count) |> matched

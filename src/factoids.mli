@@ -17,7 +17,8 @@ type op =
   | Incr of key
   | Decr of key
 
-val parse_op : string -> op option
+val parse_op : string -> (op * string option) option
+(** op + hilight *)
 
 val string_of_value : value -> string
 val string_of_op : op -> string
