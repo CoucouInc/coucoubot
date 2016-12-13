@@ -27,7 +27,7 @@ let youtube_hosts = [
 
 let cmd_yt =
   Command.make_simple
-    ~prio:10 ~prefix:"yt" ~descr:"lookup on youtube"
+    ~prio:10 ~prefix:"yt" ~descr:"lookup description of given youtube URL"
     (fun _ s ->
        let uri = Uri.of_string (String.trim s) in
        match Uri.host uri with
