@@ -21,7 +21,7 @@ let make ?(descr="") ?(prio=99) ~name f =
 let extract_hl s =
   try
     let i = String.rindex s '>' in
-    if i>0 && i < String.length s-1 then (
+    if i < String.length s-1 then (
       let hl =
         String.sub s (i+1) (String.length s-i-1) |> String.trim
       in
