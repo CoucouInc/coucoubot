@@ -122,28 +122,24 @@ let save_thread state =
   Lwt.async loop
 
 let cmd_tell state =
-  Command.make
+  Command.make_simple
     ~descr:"ask the bot to transmit a message to someone absent"
-    ~prio:10 ~name:"tell"
-    (fun (module C:Core.S) msg ->
-       match Command.match_prefix1 ~prefix:"tell" msg with
-       | None -> Command.Cmd_skip
-       | Some s ->
-         let nick = msg.Core.nick in
-         let target = Core.reply_to msg in
-         try
-           let dest, msg =
-             let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
-             (List.hd a, List.hd @@ List.tl a) in
-           set_data state dest
-             {(data state dest) with
-                to_tell =
-                  {from=nick; on_channel=target; msg}
-                  :: (data state dest).to_tell};
-           ;
-           Command.Cmd_match (C.talk ~target Talk.Ack)
-         with e ->
-           Command.Cmd_fail ("tell: " ^ Printexc.to_string e)
+    ~prio:10 ~prefix:"tell"
+    (fun msg s ->
+       let nick = msg.Core.nick in
+       let target = Core.reply_to msg in
+       try
+         let dest, msg =
+           let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
+           (List.hd a, List.hd @@ List.tl a) in
+         set_data state dest
+           {(data state dest) with
+              to_tell =
+                {from=nick; on_channel=target; msg}
+                :: (data state dest).to_tell};
+         Lwt.return_some (Talk.select Talk.Ack)
+       with e ->
+         Lwt.fail (Command.Fail ("tell: " ^ Printexc.to_string e))
     )
 
 let cmd_coucou state =
