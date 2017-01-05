@@ -148,6 +148,7 @@ let cmd_seen state =
     ~prio:10 ~prefix:"seen"
     (fun msg s ->
        let dest = String.trim s in
+       Log.logf "query: seen `%s`" dest;
        begin match StrMap.get dest !state with
          | Some data ->
            let last = data.last_seen in
