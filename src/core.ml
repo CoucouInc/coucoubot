@@ -131,17 +131,15 @@ let run ~connect ~init () : unit Lwt.t =
   Irc.reconnect_loop
     ~after:60
     ~connect
-    ~callback:(fun _ msg_or_err ->
-      let (module C) = match !self with
-        | None -> assert false
-        | Some c -> c
-      in
-      begin match msg_or_err with
-        | Result.Ok msg -> Signal.send C.messages msg
-        | Result.Error err ->
-          Printf.eprintf "%s\n%!" err;
-          Lwt.return ()
-      end)
+    ~callback:(fun _ msg_or_err -> match !self with
+      | None -> Lwt.return_unit
+      | Some (module C) ->
+        begin match msg_or_err with
+          | Result.Ok msg -> Signal.send C.messages msg
+          | Result.Error err ->
+            Printf.eprintf "%s\n%!" err;
+            Lwt.return ()
+        end)
     ~f:(fun conn ->
       let new_c = of_conn conn in
       self := Some new_c;
