@@ -65,6 +65,8 @@ let parse_op msg : (op * string option) option =
   let mk_append k v = Append (mk_factoid k v) in
   let mk_incr k = Incr (mk_key k) in
   let mk_decr k = Decr (mk_key k) in
+  if String.contains msg '\x01' then None
+  else
   (
     (re_match2 mk_append re_append msg)
     <+>
