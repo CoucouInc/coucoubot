@@ -154,9 +154,14 @@ let cmd_seen state =
            | Some data ->
              let last = data.last_seen in
              let now = Unix.time () in
+             let diff = now -. last in
              let msg =
-               CCFormat.sprintf "seen %s last %a ago"
-                 dest ISO8601.Permissive.pp_time (now -. last)
+               CCFormat.sprintf "seen %s last: %a ago"
+                 dest
+                 (if diff < 24. *. 3600.
+                  then ISO8601.Permissive.pp_time
+                  else ISO8601.Permissive.pp_datetime)
+                 diff
              in
              Lwt.return_some msg
            | None ->
