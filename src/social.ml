@@ -142,6 +142,20 @@ let cmd_tell state =
          Lwt.fail (Command.Fail ("tell: " ^ Printexc.to_string e))
     )
 
+(* human readable display of date *)
+let print_diff (f:float) : string =
+  let spf = Printf.sprintf in
+  let s = Pervasives.mod_float f 60. |> int_of_float in
+  let m = Pervasives.mod_float (f /. 60.) 60. |> int_of_float in
+  let h = Pervasives.mod_float (f /. 3600.) 24. |> int_of_float in
+  let days = f /. (3600. *. 24.) |> int_of_float in
+  [ (if days > 0 then [spf "%d days" days] else []);
+    (if h > 0 then [spf "%d hours" h] else []);
+    (if m > 0 then [spf "%d minutes" m] else []);
+    [spf "%d seconds" s];
+  ] |> List.flatten |> String.concat ", "
+
+
 let cmd_seen state =
   Command.make_simple
     ~descr:"ask for the last time someone talked on this chan"
@@ -156,12 +170,7 @@ let cmd_seen state =
              let now = Unix.time () in
              let diff = now -. last in
              let msg =
-               CCFormat.sprintf "seen %s last: %a ago"
-                 dest
-                 (if diff < 24. *. 3600.
-                  then ISO8601.Permissive.pp_time
-                  else ISO8601.Permissive.pp_datetime)
-                 diff
+               CCFormat.sprintf "seen %s last: %s ago" dest (print_diff diff)
              in
              Lwt.return_some msg
            | None ->
