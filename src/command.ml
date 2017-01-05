@@ -31,7 +31,7 @@ let extract_hl s =
   with Not_found -> None
 
 let match_prefix1_full ~prefix msg : (string * string option) option =
-  let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]*\\(.*\\)$" prefix) in
+  let re = Str.regexp (Printf.sprintf "^![ ]*%s[ ]+\\(.*\\)$" prefix) in
   begin match Prelude.re_match1 Prelude.id re msg.Core.message with
     | None -> None
     | Some matched ->
@@ -51,6 +51,8 @@ let make_simple_l ?descr ?prio ~prefix f : t =
     match match_prefix1_full ~prefix msg with
       | None -> Cmd_skip
       | Some (sub, hl) ->
+        (* Log.logf "command `%s` matched with %s, hl=%s"
+          prefix sub (match hl with None -> "none" | Some h -> h); *)
         try
           let fut =
             f msg sub >>= fun lines ->

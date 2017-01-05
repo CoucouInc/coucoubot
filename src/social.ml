@@ -146,21 +146,24 @@ let cmd_seen state =
   Command.make_simple
     ~descr:"ask for the last time someone talked on this chan"
     ~prio:10 ~prefix:"seen"
-    (fun msg s ->
-       let dest = String.trim s in
-       Log.logf "query: seen `%s`" dest;
-       begin match StrMap.get dest !state with
-         | Some data ->
-           let last = data.last_seen in
-           let now = Unix.gettimeofday () in
-           let msg =
-             CCFormat.sprintf "seen %s last %a ago"
-               dest ISO8601.Permissive.pp_time (now -. last)
-           in
-           Lwt.return_some msg
-         | None ->
-           Lwt.return_some "who?"
-       end)
+    (fun _msg s ->
+       try
+         let dest = String.trim s in
+         Log.logf "query: seen `%s`" dest;
+         begin match StrMap.get dest !state with
+           | Some data ->
+             let last = data.last_seen in
+             let now = Unix.time () in
+             let msg =
+               CCFormat.sprintf "seen %s last %a ago"
+                 dest ISO8601.Permissive.pp_time (now -. last)
+             in
+             Lwt.return_some msg
+           | None ->
+             Lwt.return_some "who?"
+         end
+       with e ->
+         Lwt.fail (Command.Fail ("seen: " ^ Printexc.to_string e)))
 
 let cmd_coucou state =
   Command.make_simple
@@ -215,7 +218,7 @@ let plugin =
     Signal.on' C.privmsg
       (fun msg ->
          set_data state ~force_sync:false msg.Core.nick
-           {(data state msg.Core.nick) with last_seen = Unix.gettimeofday ()};
+           {(data state msg.Core.nick) with last_seen = Unix.time ()};
          Lwt.return ());
     (* update coucou *)
     Signal.on' C.privmsg
