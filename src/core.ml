@@ -156,3 +156,6 @@ let connect_of_config conf =
       ()
   in
   connect
+
+let () =
+  Irc.set_log (fun s -> Log.log s; Lwt.return_unit)
