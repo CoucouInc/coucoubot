@@ -142,6 +142,25 @@ let cmd_tell state =
          Lwt.fail (Command.Fail ("tell: " ^ Printexc.to_string e))
     )
 
+let cmd_seen state =
+  Command.make_simple
+    ~descr:"ask for the last time someone talked on this chan"
+    ~prio:10 ~prefix:"seen"
+    (fun msg s ->
+       let dest = String.trim s in
+       begin match StrMap.get dest !state with
+         | Some data ->
+           let last = data.last_seen in
+           let now = Unix.gettimeofday () in
+           let msg =
+             CCFormat.sprintf "seen %s last %a ago"
+               dest ISO8601.Permissive.pp_time (now -. last)
+           in
+           Lwt.return_some msg
+         | None ->
+           Lwt.return_some "who?"
+       end)
+
 let cmd_coucou state =
   Command.make_simple
     ~descr:"increment coucou level" ~prefix:"coucou" ~prio:10
@@ -195,7 +214,7 @@ let plugin =
     Signal.on' C.privmsg
       (fun msg ->
          set_data state ~force_sync:false msg.Core.nick
-           {(data state msg.Core.nick) with last_seen = Unix.time ()};
+           {(data state msg.Core.nick) with last_seen = Unix.gettimeofday ()};
          Lwt.return ());
     (* update coucou *)
     Signal.on' C.privmsg
@@ -218,6 +237,7 @@ let plugin =
   and commands state =
     [ cmd_tell state;
       cmd_coucou state;
+      cmd_seen state;
       cmd_reload state;
     ]
   in
