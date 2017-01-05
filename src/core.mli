@@ -3,7 +3,7 @@
 
 module Msg = Irc_message
 
-type connection = Irc_client_lwt.connection_t
+type connection = Irc_client_tls.connection_t
 
 type privmsg = {
   nick: string; (* author *)
@@ -22,7 +22,7 @@ val privmsg_of_msg : Msg.t -> privmsg option
 val string_of_privmsg : privmsg -> string
 
 module type S = sig
-  val connection : connection Lwt.t
+  val connection : connection
 
   val init : unit Lwt.t
   val exit : unit Lwt.t
@@ -53,13 +53,17 @@ module type S = sig
   val send_join : channel:string -> unit Lwt.t
 
   val talk : target:string -> Talk.t -> unit Lwt.t
-
-  val run : unit Lwt.t
-  (** Feed to {!Lwt_main.run} *)
 end
 
 type t = (module S)
 
-val of_conn : connection Lwt.t -> t
+val run :
+  connect:(unit -> connection option Lwt.t) ->
+  init:(t -> unit Lwt.t) ->
+  unit ->
+  unit Lwt.t
+(** Feed to {!Lwt_main.run} *)
 
-val of_config : Config.t -> t
+val connect_of_config :
+  Config.t ->
+  (unit -> connection option Lwt.t)

@@ -18,8 +18,9 @@ depends: [
     "ocamlfind" {build}
     "base-bytes"
     "base-unix"
+    "result"
     "lwt"
-    "irc-client"
+    "irc-client" { >= "0.4.0" }
     "yojson"
     "containers"
     "sequence"
@@ -27,6 +28,7 @@ depends: [
     "cohttp"
     "atdgen"
     "lambdasoup"
+    "ocaml-tls"
 ]
 tags: [ "coucou" "aop" ]
 homepage: "https://github.com/CoucouInc/coucoubot"

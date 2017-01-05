@@ -3,11 +3,11 @@
 
 open Prelude
 open Containers
-open Lwt.Infix
 
 module Msg = Irc_message
+module Irc = Irc_client_tls
 
-type connection = Irc_client_lwt.connection_t
+type connection = Irc.connection_t
 
 type privmsg = {
   nick: string; (* author *)
@@ -36,7 +36,7 @@ let string_of_privmsg msg =
   Printf.sprintf "{nick:%s, to:%s, msg: %s}" msg.nick msg.to_ msg.message
 
 module type S = sig
-  val connection : Irc_client_lwt.connection_t Lwt.t
+  val connection : connection
 
   val init : unit Lwt.t
   val exit : unit Lwt.t
@@ -67,18 +67,15 @@ module type S = sig
   val send_join : channel:string -> unit Lwt.t
 
   val talk : target:string -> Talk.t -> unit Lwt.t
-
-  val run : unit Lwt.t
-  (** Feed to {!Lwt_main.run} *)
 end
 
 type t = (module S)
 
-let of_conn c : t =
+let of_conn (c:connection): t =
   let module M = struct
-    let _conn = c
+    let connection = c
 
-    let init, send_init = Lwt.wait ()
+    let init = Lwt.return_unit (* already done! *)
     let exit, send_exit = Lwt.wait ()
 
     let send_exit () = Lwt.wakeup send_exit ()
@@ -88,20 +85,6 @@ let of_conn c : t =
 
     let line_cut_threshold = ref 10
 
-    let run =
-      _conn >>= fun connection ->
-      Irc_client_lwt.listen ~connection
-        ~callback:(fun _ msg_or_err ->
-          match msg_or_err with
-            | `Ok msg -> Signal.send messages msg
-            | `Error err -> Printf.eprintf "%s\n%!" err; Lwt.return ()) >>= fun () ->
-      Irc_client_lwt.send_quit ~connection
-
-    let connection =
-      Lwt.wakeup send_init ();
-      _conn >>= fun conn ->
-      Lwt.return conn
-
     let process_list_ ~f ~target ~messages:lines =
       (* keep at most 4 *)
       let lines =
@@ -110,9 +93,8 @@ let of_conn c : t =
         then CCList.take 4 lines @ [Printf.sprintf "(…%d more lines…)" (len-4)]
         else lines
       in
-      connection >>= fun c ->
       Lwt_list.iter_s
-        (fun message -> f ~connection:c ~target ~message)
+        (fun message -> f ~connection ~target ~message)
         lines
 
     let split_lines_ s =
@@ -122,20 +104,21 @@ let of_conn c : t =
     let flat_map f l = List.map f l |> List.flatten
 
     let send_privmsg_l ~target ~messages =
-      process_list_ ~f:Irc_client_lwt.send_privmsg ~target ~messages:(flat_map split_lines_ messages)
+      process_list_ ~f:Irc.send_privmsg ~target
+        ~messages:(flat_map split_lines_ messages)
 
     let send_notice_l ~target ~messages =
-      process_list_ ~f:Irc_client_lwt.send_notice ~target ~messages:(flat_map split_lines_ messages)
+      process_list_ ~f:Irc.send_notice ~target
+        ~messages:(flat_map split_lines_ messages)
 
     let send_privmsg ~target ~message =
-      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc_client_lwt.send_privmsg
+      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc.send_privmsg
 
     let send_notice ~target ~message =
-      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc_client_lwt.send_notice
+      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc.send_notice
 
     let send_join ~channel =
-      connection >>= fun c ->
-      Irc_client_lwt.send_join ~connection:c ~channel
+      Irc.send_join ~connection ~channel
 
     let talk ~target ty =
       let message = Talk.select ty in
@@ -143,15 +126,34 @@ let of_conn c : t =
   end in
   (module M : S)
 
-let of_config conf =
-  let c =
-    let module C = Config in
-    Irc_client_lwt.connect_by_name
+let run ~connect ~init () : unit Lwt.t =
+  let self : t option ref = ref None in
+  Irc.reconnect_loop
+    ~after:60
+    ~connect
+    ~callback:(fun _ msg_or_err ->
+      let (module C) = match !self with
+        | None -> assert false
+        | Some c -> c
+      in
+      begin match msg_or_err with
+        | Result.Ok msg -> Signal.send C.messages msg
+        | Result.Error err ->
+          Printf.eprintf "%s\n%!" err;
+          Lwt.return ()
+      end)
+    ~f:(fun conn ->
+      let new_c = of_conn conn in
+      self := Some new_c;
+      init new_c)
+    ()
+
+let connect_of_config conf =
+  let module C = Config in
+  let connect () =
+    Irc.connect_by_name
       ~username:conf.C.username ~realname:conf.C.realname ~nick:conf.C.nick
       ~server:conf.C.server ~port:conf.C.port
       ()
-    >>= (function
-      | Some c -> Lwt.return c
-      | None -> failwith "Bad server address")
   in
-  of_conn c
+  connect
