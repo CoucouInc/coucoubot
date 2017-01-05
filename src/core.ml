@@ -129,7 +129,7 @@ let of_conn (c:connection): t =
 let run ~connect ~init () : unit Lwt.t =
   let self : t option ref = ref None in
   Irc.reconnect_loop
-    ~keepalive:{Irc. mode=`Passive; timeout=60}
+    ~keepalive:{Irc. mode=`Passive; timeout=300}
     ~after:60
     ~connect
     ~callback:(fun _ msg_or_err -> match !self with
