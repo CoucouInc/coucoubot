@@ -270,15 +270,27 @@ let limit_list l =
   then CCList.take list_size_limit l @ ["…"]
   else l
 
+(* tokenize message into search tokens *)
+let search_tokenize s =
+  String.trim s
+  |> Str.split (Str.regexp "[ \t]+")
+
 let cmd_search state =
   Command.make_simple_l ~descr:"search in factoids" ~prefix:"search" ~prio:10
     (fun _ s ->
-       let tokens =
-         String.trim s
-         |> Str.split (Str.regexp "[ \t]+")
-       in
+       let tokens = search_tokenize s in
        search tokens state.st_cur
        |> limit_list
+       |> Lwt.return
+    )
+
+let cmd_search_all state =
+  Command.make_simple_query_l
+    ~descr:"search all matches in factoids (reply in pv)"
+    ~prefix:"search_all" ~prio:10
+    (fun _ s ->
+       let tokens = search_tokenize s in
+       search tokens state.st_cur
        |> Lwt.return
     )
 
@@ -290,6 +302,21 @@ let cmd_see state =
          | Int i -> [string_of_int i]
          | StrList [] -> ["not found."]
          | StrList l -> limit_list l
+       in
+       Lwt.return msg
+    )
+
+let cmd_see_all state =
+  Command.make_simple_query_l
+    ~descr:"see all of a factoid's content (in pv)"
+    ~prefix:"see_all"
+    ~prio:10
+    (fun _ s ->
+       let v = get (mk_key s) state.st_cur in
+       let msg = match v with
+         | Int i -> [string_of_int i]
+         | StrList [] -> ["not found."]
+         | StrList l -> l
        in
        Lwt.return msg
     )
@@ -373,8 +400,10 @@ let cmd_factoids state =
 let commands state: Command.t list =
   [ cmd_factoids state;
     cmd_search state;
+    cmd_search_all state;
     cmd_reload state;
     cmd_see state;
+    cmd_see_all state;
     cmd_random state;
   ]
 

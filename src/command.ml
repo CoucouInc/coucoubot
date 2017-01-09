@@ -46,7 +46,7 @@ let match_prefix1 ~prefix msg =
 
 exception Fail of string
 
-let make_simple_l ?descr ?prio ~prefix f : t =
+let make_simple_inner_ ~query ?descr ?prio ~prefix f : t =
   let match_ (module C:Core.S) msg =
     match match_prefix1_full ~prefix msg with
       | None -> Cmd_skip
@@ -60,14 +60,20 @@ let make_simple_l ?descr ?prio ~prefix f : t =
               | None -> lines
               | Some hl -> List.map (fun line -> hl ^ ": " ^ line) lines
             in
-            C.send_privmsg_l ~target:(Core.reply_to msg)
-              ~messages:lines
+            let target = if query then Core.nick msg else Core.reply_to msg in
+            C.send_privmsg_l ~target ~messages:lines
           in
           Cmd_match fut
         with Fail msg ->
           Cmd_fail msg
   in
   make ?descr ?prio ~name:prefix match_
+
+let make_simple_l ?descr ?prio ~prefix f : t =
+  make_simple_inner_ ~query:false ?descr ?prio ~prefix f
+
+let make_simple_query_l ?descr ?prio ~prefix f : t =
+  make_simple_inner_ ~query:true ?descr ?prio ~prefix f
 
 let make_simple ?descr ?prio ~prefix f : t =
   make_simple_l ?descr ?prio ~prefix

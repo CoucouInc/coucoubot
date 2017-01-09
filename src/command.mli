@@ -61,6 +61,15 @@ val make_simple_l :
 (** Same as {!make_simple} but replies lines
     The function can raise Fail to indicate failure *)
 
+val make_simple_query_l :
+  ?descr:string ->
+  ?prio:int ->
+  prefix:string ->
+  (Core.privmsg -> string -> string list Lwt.t) ->
+  t
+(** Same as {!make_simple_l} but replies lines in query (private)
+    The function can raise Fail to indicate failure *)
+
 val compare_prio : t -> t -> int
 (** Compare by priority *)
 

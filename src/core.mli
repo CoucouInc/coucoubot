@@ -17,6 +17,9 @@ val is_chan : string -> bool
 val reply_to : privmsg -> string
 (** find whom to reply to *)
 
+val nick : privmsg -> string
+(** The author of the message *)
+
 val privmsg_of_msg : Msg.t -> privmsg option
 
 val string_of_privmsg : privmsg -> string

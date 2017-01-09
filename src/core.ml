@@ -18,6 +18,8 @@ type privmsg = {
 let is_chan s =
   s<>"" && s.[0] = '#' && not (String.contains s ' ')
 
+let nick msg = msg.nick
+
 let reply_to msg =
   if is_chan msg.to_
   then msg.to_ (* reply on same channel *)
