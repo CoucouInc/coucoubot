@@ -99,7 +99,7 @@ let data state nick =
 
 (* Update coucous *)
 let is_coucou msg =
-  contains msg (Str.regexp "\bcoucou\b")
+  contains msg (Str.regexp "\\bcoucou\\b")
 
 let shift_coucou ~by state nick =
   let d = data state nick in

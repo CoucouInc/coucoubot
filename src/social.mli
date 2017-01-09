@@ -38,3 +38,7 @@ val set_data : state -> ?force_sync:bool -> string -> contact -> unit
 val sync : state -> unit
 
 val plugin : Plugin.t
+
+(**/**)
+val is_coucou : string -> bool
+(**/**)

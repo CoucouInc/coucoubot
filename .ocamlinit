@@ -1,5 +1,5 @@
 #require "lwt.unix";;
-#require "irc-client.lwt";;
+#require "irc-client.tls";;
 #require "str";;
 #require "yojson";;
 #require "containers";;
