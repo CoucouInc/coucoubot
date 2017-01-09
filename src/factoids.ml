@@ -272,15 +272,20 @@ let cmd_search state =
     )
 
 let cmd_see state =
-  Command.make_simple ~descr:"see a factoid's content" ~prefix:"see" ~prio:10
+  Command.make_simple_l ~descr:"see a factoid's content" ~prefix:"see" ~prio:10
     (fun _ s ->
        let v = get (mk_key s) state.st_cur in
        let msg = match v with
-         | Int i -> string_of_int i
-         | StrList [] -> "not found."
-         | StrList l -> Prelude.string_list_to_string l
+         | Int i -> [string_of_int i]
+         | StrList [] -> ["not found."]
+         | StrList l ->
+           let n = List.length l in
+           let max_len = 4 in
+           if n>max_len
+           then CCList.take max_len l @ ["…"]
+           else l
        in
-       Some msg |> Lwt.return
+       Lwt.return msg
     )
 
 let cmd_random state =
