@@ -9,6 +9,7 @@ type to_tell = {
   from: string;
   on_channel: string;
   msg: string;
+  tell_after: float option; (** optional; not before this deadline (UTC) *)
 }
 
 (* Data for contacts *)
@@ -31,7 +32,10 @@ let contact_of_json (json: json): contact option =
         member "to_tell"
         |> J.convert_each (fun j ->
           match J.convert_each J.to_string j with
-          | [from; on_channel; msg] -> {from; on_channel; msg}
+            | [from; on_channel; msg] -> {from; on_channel; msg; tell_after=None}
+            | [from; on_channel; msg; tell_after] ->
+              let tell_after = Some (float_of_string tell_after) in
+              {from; on_channel; msg; tell_after;}
           | _ -> raise Bad_json);
       coucous = member "coucous" |> J.to_int_option |? 0
     } |> some
@@ -41,8 +45,12 @@ let json_of_contact (c: contact): json =
   `Assoc [
     "lastSeen", `Float c.last_seen;
     "to_tell", `List (
-      List.map (fun {from; on_channel; msg} ->
-        `List [`String from; `String on_channel; `String msg]
+      List.map (fun {from; on_channel; msg; tell_after} ->
+        let last = match tell_after with
+          | None -> []
+          | Some f -> [`String (string_of_float f)]
+        in
+        `List ([`String from; `String on_channel; `String msg] @ last)
       ) c.to_tell
     );
     "coucous", `Int c.coucous
@@ -131,26 +139,56 @@ let save_thread state =
   in
   Lwt.async loop
 
-let cmd_tell state =
+let split_2 ~msg re s =
+  let a = Str.bounded_split re s 2 in
+  match a with
+    | [x;y] ->x,y
+    | _ -> raise (Command.Fail msg)
+
+let split_3 ~msg re s =
+  let a = Str.bounded_split re s 3 in
+  match a with
+    | [x;y;z] -> x,y,z
+    | _ -> raise (Command.Fail msg)
+
+let cmd_tell_inner ~at state =
   Command.make_simple
-    ~descr:"ask the bot to transmit a message to someone absent"
-    ~prio:10 ~prefix:"tell"
+    ~descr:("ask the bot to transmit a message to someone absent\n"
+      ^ if at then "format: <date> <nick> <msg>" else "format: <nick> <msg>")
+    ~prio:10 ~prefix:(if at then "tell_at" else "tell")
     (fun msg s ->
        let nick = msg.Core.nick in
        let target = Core.reply_to msg in
+       let s = String.trim s in
        try
-         let dest, msg =
-           let a = Str.bounded_split (Str.regexp " ") (String.trim s) 2 in
-           (List.hd a, List.hd @@ List.tl a) in
+         let dest, msg, tell_after =
+           if at
+           then (
+             let d, m, t =
+               split_3 ~msg:"tell_at: expected <date> <nick> <msg>" (Str.regexp " ") s
+             in
+             let t = ISO8601.Permissive.datetime ~reqtime:false t in
+             d, m, Some t
+           )
+           else
+             let d, m =
+               split_2 ~msg:"tell: expected <nick> <msg>" (Str.regexp " ") s
+             in
+             d, m, None
+         in
          set_data state dest
            {(data state dest) with
               to_tell =
-                {from=nick; on_channel=target; msg}
+                {from=nick; on_channel=target; msg; tell_after}
                 :: (data state dest).to_tell};
          Lwt.return_some (Talk.select Talk.Ack)
-       with e ->
-         Lwt.fail (Command.Fail ("tell: " ^ Printexc.to_string e))
+       with
+         | Command.Fail _ as e -> Lwt.fail e
+         | e -> Lwt.fail (Command.Fail ("tell: " ^ Printexc.to_string e))
     )
+
+let cmd_tell = cmd_tell_inner ~at:false
+let cmd_tell_at = cmd_tell_inner ~at:true
 
 (* human readable display of date *)
 let print_diff (f:float) : string =
@@ -228,12 +266,22 @@ let on_message (module C:Core.S) state msg =
   | None -> Lwt.return ()
   | Some nick ->
     let contact = data state nick in
-    let to_tell = contact.to_tell |> List.rev in
-    if to_tell <> [] then set_data state nick {contact with to_tell = []};
-    Lwt_list.iter_s (fun {from=author; on_channel; msg=m} ->
+    let to_tell, remaining =
+      let now = Unix.time() in
+      contact.to_tell
+      |> List.partition
+        (fun t -> match t.tell_after with
+           | None -> true
+           | Some f when now > f -> true
+           | Some _ -> false)
+    in
+    if to_tell <> [] then (
+      set_data state nick {contact with to_tell = remaining};
+    );
+    Lwt_list.iter_s (fun {from=author; on_channel; msg=m; _} ->
       C.send_notice ~target:on_channel
         ~message:(Printf.sprintf "%s: (from %s): %s" nick author m))
-      to_tell
+      (List.rev to_tell)
 
 let plugin =
   let init ((module C:Core.S) as core) _conf =
@@ -264,6 +312,7 @@ let plugin =
     write_db !state |> Lwt.return
   and commands state =
     [ cmd_tell state;
+      cmd_tell_at state;
       cmd_coucou state;
       cmd_seen state;
       cmd_reload state;

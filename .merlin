@@ -10,4 +10,5 @@ PKG sequence
 PKG uri
 PKG cohttp.lwt
 PKG lambdasoup
+PKG ISO8601
 FLG -w +a-4-44-48

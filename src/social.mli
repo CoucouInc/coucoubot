@@ -15,6 +15,7 @@ type to_tell = {
   from: string;
   on_channel: string;
   msg: string;
+  tell_after: float option; (** optional; not before this deadline (UTC) *)
 }
 
 (* Data for contacts *)
