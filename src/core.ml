@@ -4,6 +4,8 @@
 open Prelude
 open Containers
 
+open Lwt.Infix
+
 module Msg = Irc_message
 module Irc = Irc_client_tls
 
@@ -55,6 +57,15 @@ module type S = sig
   val send_privmsg_l :
     target:string -> messages:string list -> unit Lwt.t
 
+  val send_privmsg_l_nolimit :
+    ?delay:float ->
+    target:string ->
+    messages:string list ->
+    unit ->
+    unit Lwt.t
+  (** Version of {!send_privmsg_l} that does not enforce cut threshold.
+      @param delay optional delay between each sent message *)
+
   val send_privmsg :
     target:string -> message:string -> unit Lwt.t
   (** Helper for sending messages, splitting lines, etc. *)
@@ -87,16 +98,20 @@ let of_conn (c:connection): t =
 
     let line_cut_threshold = ref 10
 
-    let process_list_ ~f ~target ~messages:lines =
+    let process_list_ ?(bypass_limit=false) ?sep ~f ~target ~messages:lines () =
       (* keep at most 4 *)
       let lines =
         let len = List.length lines in
-        if len > !line_cut_threshold
+        if not bypass_limit && len > !line_cut_threshold
         then CCList.take 4 lines @ [Printf.sprintf "(…%d more lines…)" (len-4)]
         else lines
       in
       Lwt_list.iter_s
-        (fun message -> f ~connection ~target ~message)
+        (fun message ->
+           f ~connection ~target ~message >>= fun () ->
+           match sep with
+             | None -> Lwt.return_unit
+             | Some f -> f())
         lines
 
     let split_lines_ s =
@@ -106,18 +121,30 @@ let of_conn (c:connection): t =
     let flat_map f l = List.map f l |> List.flatten
 
     let send_privmsg_l ~target ~messages =
-      process_list_ ~f:Irc.send_privmsg ~target
+      process_list_
+        ~f:Irc.send_privmsg ~target
+        ~messages:(flat_map split_lines_ messages) ()
+
+    let send_privmsg_l_nolimit ?(delay=0.5) ~target ~messages () =
+      process_list_
+        ~f:Irc.send_privmsg
+        ~sep:(fun () -> Lwt_unix.sleep delay)
+        ~target  ~bypass_limit:true
         ~messages:(flat_map split_lines_ messages)
+        ()
 
     let send_notice_l ~target ~messages =
-      process_list_ ~f:Irc.send_notice ~target
-        ~messages:(flat_map split_lines_ messages)
+      process_list_
+        ~f:Irc.send_notice ~target  ~bypass_limit:false
+        ~messages:(flat_map split_lines_ messages) ()
 
     let send_privmsg ~target ~message =
-      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc.send_privmsg
+      process_list_
+        ~target ~messages:(split_lines_ message) ~f:Irc.send_privmsg ()
 
     let send_notice ~target ~message =
-      process_list_ ~target ~messages:(split_lines_ message) ~f:Irc.send_notice
+      process_list_
+        ~target ~messages:(split_lines_ message) ~f:Irc.send_notice ()
 
     let send_join ~channel =
       Irc.send_join ~connection ~channel

@@ -42,6 +42,15 @@ module type S = sig
   val send_privmsg_l :
     target:string -> messages:string list -> unit Lwt.t
 
+  val send_privmsg_l_nolimit :
+    ?delay:float ->
+    target:string ->
+    messages:string list ->
+    unit ->
+    unit Lwt.t
+  (** Version of {!send_privmsg_l} that does not enforce cut threshold.
+      @param delay optional delay between each sent message *)
+
   val send_privmsg :
     target:string -> message:string -> unit Lwt.t
   (** Helper for sending messages, splitting lines, etc. *)

@@ -61,7 +61,8 @@ let make_simple_inner_ ~query ?descr ?prio ~prefix f : t =
               | Some hl -> List.map (fun line -> hl ^ ": " ^ line) lines
             in
             let target = if query then Core.nick msg else Core.reply_to msg in
-            C.send_privmsg_l ~target ~messages:lines
+            let delay = if query then Some 0.5 else None in
+            C.send_privmsg_l_nolimit ?delay ~target ~messages:lines ()
           in
           Cmd_match fut
         with Fail msg ->
