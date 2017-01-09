@@ -169,12 +169,12 @@ let cmd_tell_inner ~at state =
              in
              let t = ISO8601.Permissive.datetime ~reqtime:false t in
              d, m, Some t
-           )
-           else
+           ) else (
              let d, m =
                split_2 ~msg:"tell: expected <nick> <msg>" (Str.regexp " ") s
              in
              d, m, None
+           )
          in
          set_data state dest
            {(data state dest) with
