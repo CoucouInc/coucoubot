@@ -36,7 +36,8 @@ let cmd_yt =
          | _ -> Lwt.return_none
     )
 
-let cancer_uri = Uri.of_string "https://polochon.lelele.io/cancer/quickcancer"
+let cancer_uri =
+  Uri.of_string "https://polochon.lelele.io/cancer/quickcancer"
 
 let cmd_cancer =
   Command.make_simple
@@ -70,7 +71,32 @@ let cmd_cancer =
          Lwt.return (Some message)
     )
 
+let find_yt_ids ?(n=1) (body:string): string list =
+  let ast = parse body in
+  Soup.select "#results li li > div" ast
+  |> Soup.to_list
+  |> CCList.take n
+  |> CCList.filter_map (Soup.attribute "data-context-item-id")
+  |> List.map (fun id -> "https://youtube.com/watch?v=" ^ id)
+
+let get_youtube_search (query:string): string Lwt.t =
+  let uri =
+    Uri.of_string "https://www.youtube.com/results"
+  in
+  let uri = Uri.add_query_param' uri ("search_query", query) in
+  Cohttp_lwt_unix.Client.get uri >>= fun (_,body) ->
+  Cohttp_lwt_body.to_string body
+
+let cmd_yt_search =
+  Command.make_simple_l
+    ~prio:10 ~prefix:"yt_search" ~descr:"lookup on youtube"
+    (fun _ s ->
+       get_youtube_search (String.trim s) >|= fun body ->
+       find_yt_ids body
+    )
+
 let plugin =
   [ cmd_yt;
-    cmd_cancer
+    cmd_cancer;
+    cmd_yt_search;
   ] |> Plugin.of_cmds
