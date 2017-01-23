@@ -1,40 +1,37 @@
-open Lwt.Infix
 
-let all_ : Plugin.t list = [
-  Cmd_web.plugin;
-  Movie.plugin;
-  Social.plugin;
-  Freedom.plugin;
-  Factoids.plugin;
+
+module C = Calculon
+module CW = Calculon_web
+module CE = Calculon_extras
+
+let all_ : C.Plugin.t list = [
+  C.Plugin_factoids.plugin;
+  C.Plugin_social.plugin;
+  C.Plugin_state.plugin;
+  C.Plugin_vote.plugin;
+  CW.Plugin_movie.plugin;
+  CW.Plugin_web.plugin;
+  Plugin_coucou.plugin;
+  Plugin_cancer.plugin;
 ]
 
-let main conf : unit Lwt.t =
-  let init (core:Core.t) =
-    let (module C) = core in
-    (* setup plugins *)
-    Plugin.init core conf all_ >>= fun (cmds, cleanup_cmds) ->
-    (* connect to chan *)
-    C.send_join ~channel:conf.Config.channel >>= fun () ->
-    Log.logf "got %d commands from %d plugins" (List.length cmds) (List.length all_);
-    (* log incoming messages, apply commands to them *)
-    Signal.on' C.messages
-      (fun msg ->
-         Log.logf "got message: %s" (Core.Msg.to_string msg);
-         match Core.privmsg_of_msg msg with
-           | None -> Lwt.return_unit
-           | Some msg -> Command.run core cmds msg);
-    (* cleanup *)
-    Lwt.async (fun () -> C.exit >>= cleanup_cmds);
-    Lwt.return_unit
-  and connect =
-    Core.connect_of_config conf
-  in
-  Core.run
-    ~connect
-    ~init
-    ()
+let config = {
+  C.Config.default with
+  C.Config.
+  server = "irc.freenode.net";
+  port = 7000;
+  username = "coucoubot";
+  realname = "coucoubot";
+  nick = "coucoubot";
+  channel = "#arch-fr-free";
+}
 
 let () =
-  let conf = Config.of_argv () in
-  main conf |> Lwt_main.run
+  try
+    (* update with CLI parameters *)
+    let config = C.Config.parse config Sys.argv in
+    C.Run_main.main config all_ |> Lwt_main.run
+  with
+    | Arg.Help msg -> print_endline msg
+    | Arg.Bad msg -> prerr_endline msg; exit 1
 

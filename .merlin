@@ -1,13 +1,12 @@
 S src
 B _build/src
-PKG irc-client.lwt
-PKG str
-PKG num
+S src/tools/
+B _build/src/tools
+PKG calculon
 PKG result
 PKG containers
-PKG yojson
-PKG sequence
 PKG uri
+PKG sequence
 PKG cohttp.lwt
 PKG lambdasoup
 PKG ISO8601

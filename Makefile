@@ -1,15 +1,9 @@
-TARGETS = src/coucoubot.native src/coucoulib.cma src/coucoulib.cmxa src/coucoubot.cmxs
+TARGETS = src/coucoubot.native src/coucoulib.cma src/coucoulib.cmxa src/coucoubot.cmxs src/tools/convert_json.native
 
-atd:
-	atdgen -t src/movie.atd
-	atdgen -j -j-std src/movie.atd
-
-all: atd
+all:
 	ocamlbuild -cflag -safe-string -use-ocamlfind $(TARGETS)
 
 clean:
-	rm src/movie_t.ml*
-	rm src/movie_j.ml*
 	ocamlbuild -clean
 
 backups:
