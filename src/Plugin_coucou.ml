@@ -147,7 +147,7 @@ let plugin =
     ]
   in
   Plugin.stateful
-    ~name:"social"
+    ~name:"coucou"
     ~on_msg:(fun st -> [on_message st])
     ~of_json ~to_json
     ~commands
