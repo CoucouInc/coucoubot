@@ -11,6 +11,7 @@ let all_ : C.Plugin.t list = [
   C.Plugin_vote.plugin;
   CW.Plugin_movie.plugin;
   CW.Plugin_web.plugin;
+  CE.Plugin_markcough.plugin;
   Plugin_coucou.plugin;
   Plugin_cancer.plugin;
 ]
