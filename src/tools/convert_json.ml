@@ -83,7 +83,7 @@ let factoids_of_file file : Calculon.Plugin_factoids.t =
     | Result.Error msg ->
       failwith ("could not read factoids: " ^ msg)
 
-let file_social = "social.json"
+let file_social = "socialdb.json"
 let file_factoids = "factoids.json"
 let file_out = "state.json"
 
