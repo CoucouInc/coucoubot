@@ -9,6 +9,7 @@ let all_ : C.Plugin.t list = [
   C.Plugin_social.plugin;
   C.Plugin_state.plugin;
   C.Plugin_vote.plugin;
+  C.Plugin_history.plugin ~n:200 ~default_len:10 ();
   CW.Plugin_movie.plugin;
   CW.Plugin_web.plugin;
   CE.Plugin_markcough.plugin;
