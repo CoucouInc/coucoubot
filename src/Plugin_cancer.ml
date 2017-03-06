@@ -16,18 +16,15 @@ let cmd_cancer =
        Cohttp_lwt_body.to_string body >>= fun body ->
        let fmt_link (title, url) = title ^ ":" ^ url in
        let links =
-         Str.split (Str.regexp "\n") body
+         CCString.Split.list_cpy ~by:"\n" body
          |> List.filter ((<>) "")
-         |> CCList.filter_map (fun s ->
-           match Str.bounded_split (Str.regexp ":") s 2 with
-             | [title; url] -> Some (title, url)
-             | _ -> None)
+         |> CCList.filter_map (CCString.Split.left ~by:":")
        in
        let links_with_search =
          match String.trim s with
            | "" -> links
            | search ->
-             let re = Str.regexp_case_fold search in
+             let re = Re_perl.compile_pat ~opts:[`Caseless] search in
              CCList.filter_map
                (fun (title, url) ->
                   if Prelude.contains title re then Some (title, url) else None)

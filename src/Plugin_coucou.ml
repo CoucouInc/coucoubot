@@ -59,7 +59,7 @@ let data state nick =
 
 (* Update coucous *)
 let is_coucou msg =
-  contains msg (Str.regexp "[^!]\\bcoucou\\b")
+  contains msg (Re_perl.compile_pat "[^!]\\bcoucou\\b")
   ||
   CCString.prefix ~pre:"coucou" msg
 
@@ -78,24 +78,12 @@ let shift_coucou ~by state nick =
 let incr_coucou = shift_coucou ~by:1
 let decr_coucou = shift_coucou ~by:~-1
 
-let split_2 ~msg re s =
-  let a = Str.bounded_split re s 2 in
-  match a with
-    | [x;y] ->x,y
-    | _ -> raise (Command.Fail msg)
-
-let split_3 ~msg re s =
-  let a = Str.bounded_split re s 3 in
-  match a with
-    | [x;y;z] -> x,y,z
-    | _ -> raise (Command.Fail msg)
-
 let cmd_coucou state =
   Command.make_simple
     ~descr:"increment coucou level" ~prefix:"coucou" ~prio:10
     (fun msg s ->
        let s = String.trim s in
-       if contains s (Str.regexp " ") then Lwt.return_none
+       if String.contains s ' ' then Lwt.return_none
        else
          let nick = if s <> "" then s else msg.Core.nick in
          let coucou_count = (data state nick).coucous in
