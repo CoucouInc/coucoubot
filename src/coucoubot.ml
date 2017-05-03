@@ -14,7 +14,7 @@ let all_ : C.Plugin.t list = [
   CW.Plugin_web.plugin;
   CE.Plugin_markcough.plugin;
   Plugin_coucou.plugin;
-  Plugin_cancer.plugin;
+  Plugin_misc.plugin;
 ]
 
 let config = {

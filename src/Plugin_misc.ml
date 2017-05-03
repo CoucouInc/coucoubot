@@ -37,6 +37,21 @@ let cmd_cancer =
          Lwt.return (Some message)
     )
 
+let cmd_urgence =
+  Command.make_simple ~descr:"compteur" ~prio:10 ~prefix:"urgence"
+    (fun _ _ ->
+       let uri = Uri.of_string "https://estcequecestencoreletatdurgence.fr/" in
+       Cohttp_lwt_unix.Client.get uri >>= fun (_,body) ->
+       Cohttp_lwt_body.to_string body >|= fun body ->
+       try
+         let s = Soup.parse body in
+         Soup.select ".depuis" s
+         |> Soup.to_list |> CCList.take 1
+         |> CCList.filter_map Soup.leaf_text
+         |> CCList.head_opt
+       with _ -> None)
+
 let plugin =
   [ cmd_cancer;
+    cmd_urgence;
   ] |> Plugin.of_cmds
