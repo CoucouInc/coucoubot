@@ -13,7 +13,7 @@ let cmd_cancer =
     ~prio:10 ~prefix:"cancer" ~descr:"lookup in the abyss of bad videos"
     (fun _ s ->
        Client.get cancer_uri >>= fun (_, body) ->
-       Cohttp_lwt_body.to_string body >>= fun body ->
+       Cohttp_lwt.Body.to_string body >>= fun body ->
        let fmt_link (title, url) = title ^ ":" ^ url in
        let links =
          CCString.Split.list_cpy ~by:"\n" body
@@ -42,7 +42,7 @@ let cmd_urgence =
     (fun _ _ ->
        let uri = Uri.of_string "https://estcequecestencoreletatdurgence.fr/" in
        Cohttp_lwt_unix.Client.get uri >>= fun (_,body) ->
-       Cohttp_lwt_body.to_string body >|= fun body ->
+       Cohttp_lwt.Body.to_string body >|= fun body ->
        try
          let s = Soup.parse body in
          Soup.select ".depuis" s
