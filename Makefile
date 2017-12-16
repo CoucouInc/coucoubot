@@ -7,7 +7,7 @@ clean:
 	ocamlbuild -clean
 
 backups:
-	@echo "doing backups of all .json files…"
+	#@echo "doing backups of all .json files…"
 	./tools/save.sh *.json
 
 .DEFAULT_GOAL := all
