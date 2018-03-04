@@ -23,13 +23,7 @@ depends: [
     "calculon-web"
     "lwt"
     "irc-client" { >= "0.4.0" }
-    "yojson"
-    "sequence"
     "containers"
-    "uri"
-    "cohttp"
-    "atdgen"
-    "lambdasoup"
     "ocaml-tls"
 ]
 tags: [ "coucou" "aop" ]
