@@ -1,14 +1,19 @@
-TARGETS = src/coucoubot.native src/coucoulib.cma src/coucoulib.cmxa src/coucoubot.cmxs src/tools/convert_json.native
+all: build test
 
-all:
-	ocamlbuild -cflag -safe-string -use-ocamlfind $(TARGETS)
+build:
+	jbuilder build @install
+
+test: build
+	jbuilder runtest --no-buffer --force
 
 clean:
-	ocamlbuild -clean
+	jbuilder clean
+
+doc:
+	jbuilder build @doc
+
 
 backups:
 	#@echo "doing backups of all .json files…"
 	./tools/save.sh *.json
 
-.DEFAULT_GOAL := all
-.PHONY: all clean backups

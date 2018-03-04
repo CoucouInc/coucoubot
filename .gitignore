@@ -6,8 +6,10 @@ _build
 .session
 TAGS
 *.docdir
-setup.*
 qtest*
+*.install
 *.html
 *_j.*
 *_t.*
+.merlin
+*.json

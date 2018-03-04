@@ -1,5 +1,0 @@
-<src>: include
-<**/*>: package(lwt, re.perl, containers, yojson, calculon,
-                calculon.web, calculon.extras, ISO8601, sequence,
-                cohttp.lwt, uri)
-true: warn(+a-4-44-48-29), color(always), bin_annot, safe_string

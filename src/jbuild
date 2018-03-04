@@ -1,0 +1,11 @@
+
+(jbuild_version 1)
+
+(executable
+  ((name coucoubot)
+   (public_name coucoubot)
+   (flags (:standard -w +a-4-44-48-29))
+   (libraries (lwt re.perl containers yojson calculon
+               calculon-web calculon.extras ISO8601 sequence
+               cohttp.lwt uri))
+   ))
