@@ -14,6 +14,7 @@ let all_ : C.Plugin.t list = [
   CW.Plugin_web.plugin;
   CE.Plugin_markcough.plugin;
   Plugin_coucou.plugin;
+  Plugin_choice.plugin;
   Plugin_misc.plugin;
 ]
 
@@ -22,10 +23,10 @@ let config = {
   C.Config.
   server = "irc.freenode.net";
   port = 7000;
-  username = "coucoubot";
-  realname = "coucoubot";
-  nick = "coucoubot";
-  channel = "#arch-fr-free";
+  username = "roucoubot";
+  realname = "roucoubot";
+  nick = "roucoubot";
+  channel = "#arch-fr-coucou";
 }
 
 let () =
