@@ -1,7 +1,7 @@
 open Calculon
 open Prelude
 
-(** Separate a string into two parts using the given separator **)
+(** Separate a string into n parts using the given separator **)
 let extract_choices sep str =
   let sep = String.lowercase_ascii sep in
   let rec list_to_string l =
@@ -9,26 +9,35 @@ let extract_choices sep str =
       | s::ss -> s ^ " " ^ list_to_string ss
       | [] -> ""
   in
-  let rec split_list_on_element el l =
-    match l with
-      | e::es ->
-        if String.equal (String.lowercase_ascii e) el then
-          [], es
-        else
-          let l1, l2 = split_list_on_element el es in
-          e::l1, l2
-      | [] -> ([], [])
+  let split_list_on_element el l =
+    let rec f_aux el l =
+      match l with
+        | e::es ->
+          begin
+            if String.equal (String.lowercase_ascii e) el then (
+              let (l1, l) = f_aux el es in
+              ([] ,l1::l)
+            ) else (
+              let l1, l = f_aux el es in
+              (e::l1, l)
+            )
+          end
+        | [] -> ([], [])
+    in
+    let l1, l = f_aux el l in
+    l1::l
   in
-  let map_couple f (a,b) = (f a, f b) in
   match String.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
     | [] -> None
     | [_] -> None
-    | [s1;s2] -> Some (s1, s2)
+    | [s1;s2] -> Some [s1; s2]
     | l ->
-      begin match split_list_on_element sep l |> map_couple list_to_string with
-        | ("",_) -> None
-        | (_,"") -> None
-        | c -> Some c
+      begin
+        let l = split_list_on_element sep l
+          |> List.map list_to_string
+          |> List.filter (fun s -> s <> "")
+        in
+        if List.length l < 2 then None else Some l
       end
 
 (** Make several successives separator attempts on the string **)
@@ -41,15 +50,14 @@ let rec extract_choices_seps sep_list str =
         | Some c -> Some c
 
 let cmd_choice =
-  let list_of_couple (a,b) = [a; b] in
   let supported_separators = ["vs"; "|"; "||"; "&"; "&&"; "or"; "and"; "ou"; "et";
     "contre"; "versus"] in
   let cmd_function =
     (fun _ str ->
-       let choice_opt = 
+       let choice_opt =
          String.trim str
          |> extract_choices_seps supported_separators
-         |> map_opt list_of_couple |> map_opt random_l in
+         |> map_opt random_l in
       let msg = choice_opt
         |> map_opt (fun s -> "Et c'est décidé ! Ce sera " ^ s)
         |? "Malheureusement, il n'est pas possible de parser votre indécision, même avec les dernières percées de nos IA multi-cloud-ready bare metal. Faîtes un effort !"
