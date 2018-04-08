@@ -23,10 +23,10 @@ let config = {
   C.Config.
   server = "irc.freenode.net";
   port = 7000;
-  username = "roucoubot";
-  realname = "roucoubot";
-  nick = "roucoubot";
-  channel = "#arch-fr-coucou";
+  username = "coucoubot";
+  realname = "coucoubot";
+  nick = "coucoubot";
+  channel = "#arch-fr-free";
 }
 
 let () =

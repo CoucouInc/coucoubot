@@ -8,12 +8,6 @@ let extract_choices sep str =
       | s::ss -> s ^ " " ^ list_to_string ss
       | [] -> ""
   in
-  let rec remove_empty_strings l =
-    match l with
-    | [] -> []
-    | ""::ss -> remove_empty_strings ss
-    | s::ss -> s::(remove_empty_strings ss)
-  in
   let rec split_list_on_element equal el l =
     match l with
       | e::es ->
@@ -26,7 +20,7 @@ let extract_choices sep str =
   in
   let map_couple f (a,b) = (f a, f b) in
 
-  match String.split_on_char ' ' str |> remove_empty_strings with
+  match String.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
     | [] -> None
     | [_] -> None
     | [s1;s2] -> Some (s1, s2)
