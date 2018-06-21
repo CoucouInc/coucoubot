@@ -27,7 +27,7 @@ let extract_choices_sep sep str =
     let l1, l = f_aux el l in
     l1::l
   in
-  match String.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
+  match CCString.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
     | [] -> None
     | [_] -> None
     | [s1;s2] -> Some [s1; s2]
@@ -51,7 +51,7 @@ let rec extract_choices_seps sep_list str =
 
 (** Just separate the string with spaces, used if no separators work **)
 let extract_basic_choices str =
-  match String.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
+  match CCString.split_on_char ' ' str |> List.filter (fun s -> s <> "") with
     | [] -> None
     | [_] -> None
     | l -> Some l

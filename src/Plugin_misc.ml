@@ -28,7 +28,7 @@ let cmd_cancer =
            | "" -> links
            | search ->
              Log.logf "cancer: lookup with query %S" search;
-             let re = Re_perl.compile_pat ~opts:[`Caseless] search in
+             let re = Re.Perl.compile_pat ~opts:[`Caseless] search in
              CCList.filter_map
                (fun (title, url) ->
                   if Prelude.contains title re then Some (title, url) else None)

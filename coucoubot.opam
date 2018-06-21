@@ -22,7 +22,7 @@ depends: [
     "calculon"
     "calculon-web"
     "lwt"
-    "irc-client" { >= "0.4.0" }
+    "irc-client" { >= "0.6.0" }
     "containers"
     "ocaml-tls"
 ]
