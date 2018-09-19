@@ -10,7 +10,7 @@ let cancer_uri =
 
 let cmd_cancer =
   Command.make_simple
-    ~prio:10 ~prefix:"cancer" ~descr:"lookup in the abyss of bad videos"
+    ~prio:10 ~cmd:"cancer" ~descr:"lookup in the abyss of bad videos"
     (fun _ s ->
        Log.logf "!cancer %S (now querying content)" s;
        Client.get cancer_uri >>= fun (c, body) ->
@@ -45,7 +45,7 @@ let cmd_cancer =
     )
 
 let cmd_urgence =
-  Command.make_simple ~descr:"compteur" ~prio:10 ~prefix:"urgence"
+  Command.make_simple ~descr:"compteur" ~prio:10 ~cmd:"urgence"
     (fun _ _ ->
        let uri = Uri.of_string "https://estcequecestencoreletatdurgence.fr/" in
        Cohttp_lwt_unix.Client.get uri >>= fun (_,body) ->

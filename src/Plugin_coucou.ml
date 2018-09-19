@@ -59,7 +59,7 @@ let data state nick =
 
 (* Update coucous *)
 let is_coucou msg =
-  contains msg (Re_perl.compile_pat "[^!]\\bcoucou\\b")
+  contains msg (Re.Perl.compile_pat "[^!]\\bcoucou\\b")
   ||
   CCString.prefix ~pre:"coucou" msg
 
@@ -80,7 +80,7 @@ let decr_coucou = shift_coucou ~by:~-1
 
 let cmd_coucou state =
   Command.make_simple
-    ~descr:"increment coucou level" ~prefix:"coucou" ~prio:10
+    ~descr:"increment coucou level" ~cmd:"coucou" ~prio:10
     (fun msg s ->
        let s = String.trim s in
        if String.contains s ' ' then Lwt.return_none

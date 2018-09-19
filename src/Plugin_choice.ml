@@ -70,7 +70,7 @@ let determinate_choice l =
     List.sort (fun a b -> val_of_str a - (val_of_str b)) l |> List.hd
 
 (* setup choice commands *)
-let cmds_choice =
+let cmds_choice : Command.t list =
   (* create a choice command using a specific choice_function *)
   let cmd_function choice_function result_message failure_message =
     (fun _ str ->
@@ -82,7 +82,7 @@ let cmds_choice =
   in
   (* easily define a choice command *)
   let command_make_choice command_name command_descr choice_function result_message failure_message =
-      Command.make_simple ~descr:command_descr ~prefix:command_name ~prio:10
+      Command.make_simple ~cmd:command_name ~descr:command_descr ~prio:10
         (cmd_function choice_function result_message failure_message)
   in
 
