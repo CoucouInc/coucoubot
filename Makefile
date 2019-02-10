@@ -1,16 +1,16 @@
 all: build test
 
 build:
-	jbuilder build @install
+	@dune build @install
 
 test: build
-	jbuilder runtest --no-buffer --force
+	@dune runtest --no-buffer --force
 
 clean:
-	jbuilder clean
+	@dune clean
 
 doc:
-	jbuilder build @doc
+	@dune build @doc
 
 
 backups:
