@@ -1,0 +1,10 @@
+{
+  "source": "./coucoubot.opam",
+  "override": {
+    "buildInSource": "_build",
+    "resolutions": {
+      "@opam/calculon":
+      "c-cube/calculon:calculon.opam#636f8a58a2707d956f737b98c6141c5e7c940f31"
+    }
+  }
+}

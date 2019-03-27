@@ -1,33 +1,30 @@
-opam-version: "1.2"
+opam-version: "2.0"
 name: "coucoubot"
 version: "dev"
 author: "Armael"
 maintainer: "Armael"
+synopsis: "Automate your coucou"
 build: [
-    [make "build"]
-]
-install: [
-    [make "install"]
-]
-build-doc: [ make "doc" ]
-build-test: [ make "test" ]
-remove: [
-    ["rm" "%{bin}%/coucoubot"]
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-    "ocamlfind" {build}
+    "dune" {build}
     "base-bytes"
     "base-unix"
     "result"
     "calculon"
     "calculon-web"
     "lwt"
+    "sequence"
     "irc-client" { >= "0.6" }
     "irc-client-tls"
     "containers"
+    "odoc" {with-doc}
 ]
 tags: [ "coucou" "aop" ]
 homepage: "https://github.com/CoucouInc/coucoubot"
 bug-reports: "https://github.com/CoucouInc/coucoubot/issues"
-dev-repo: "https://github.com/CoucouInc/coucoubot"
+dev-repo: "git+https://github.com/CoucouInc/coucoubot"
 
