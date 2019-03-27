@@ -66,9 +66,8 @@ let supported_separators = ["|"; "||"; "&"; "&&"; "vs"; "or"; "and"; "ou"; "et";
 
 (* Gives an arbitrary choice based on a arbitrary hash: gives a total order *)
 let determinate_choice l =
-  let seed = int_of_float (Unix.time()) / 24 in (* current hour *)
-  let val_of_str a = Hashtbl.hash_seeded seed (a |> String.trim |> String.lowercase_ascii) in
-  List.sort (fun a b -> val_of_str a - (val_of_str b)) l |> List.hd
+    let val_of_str a = Hashtbl.hash (a |> String.trim |> String.lowercase_ascii) in
+    List.sort (fun a b -> val_of_str a - (val_of_str b)) l |> List.hd
 
 (* setup choice commands *)
 let cmds_choice : Command.t list =
