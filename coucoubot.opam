@@ -22,9 +22,9 @@ depends: [
     "calculon"
     "calculon-web"
     "lwt"
-    "irc-client" { >= "0.6.0" }
+    "irc-client" { >= "0.6" }
+    "irc-client-tls"
     "containers"
-    "ocaml-tls"
 ]
 tags: [ "coucou" "aop" ]
 homepage: "https://github.com/CoucouInc/coucoubot"
