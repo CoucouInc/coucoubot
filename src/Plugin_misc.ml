@@ -1,4 +1,3 @@
-
 (** {1 Commands querying the Web} *)
 
 open Calculon
@@ -44,21 +43,6 @@ let cmd_cancer =
        )
     )
 
-let cmd_urgence =
-  Command.make_simple ~descr:"compteur" ~prio:10 ~cmd:"urgence"
-    (fun _ _ ->
-       let uri = Uri.of_string "https://estcequecestencoreletatdurgence.fr/" in
-       Cohttp_lwt_unix.Client.get uri >>= fun (_,body) ->
-       Cohttp_lwt.Body.to_string body >|= fun body ->
-       try
-         let s = Soup.parse body in
-         Soup.select ".depuis" s
-         |> Soup.to_list |> CCList.take 1
-         |> CCList.filter_map Soup.leaf_text
-         |> CCList.head_opt
-       with _ -> None)
-
 let plugin =
   [ cmd_cancer;
-    cmd_urgence;
   ] |> Plugin.of_cmds
