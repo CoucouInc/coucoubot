@@ -5,7 +5,7 @@ open Cohttp_lwt_unix
 open Lwt.Infix
 
 let cancer_uri =
-  Uri.of_string "https://polochon.lelele.io/cancer/quickcancer"
+  Uri.of_string "https://raw.githubusercontent.com/CoucouInc/lalalaliste/master/cancer.txt"
 
 let cmd_cancer =
   Command.make_simple
