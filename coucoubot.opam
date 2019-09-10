@@ -16,6 +16,7 @@ depends: [
     "result"
     "calculon"
     "calculon-web"
+    "calculon-redis"
     "lwt"
     "sequence"
     "irc-client" { >= "0.6" }

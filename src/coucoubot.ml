@@ -3,6 +3,7 @@
 module C = Calculon
 module CW = Calculon_web
 module CE = Calculon_extras
+module CR = Calculon_redis
 
 let all_ : C.Plugin.t list = [
   C.Plugin_factoids.plugin;
@@ -16,6 +17,7 @@ let all_ : C.Plugin.t list = [
   Plugin_coucou.plugin;
   Plugin_choice.plugin;
   Plugin_misc.plugin;
+  CR.make_plugin ();
 ]
 
 let config = {
