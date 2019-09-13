@@ -9,7 +9,7 @@ let cmd_tgnon (st:state) =
   Command.make_simple ~descr:"speak yer heart ♥" ~prio:1
     ~cmd:"tgnon"
     (fun _msg s ->
-       if String.trim s = "" then (
+       if st.tg && String.trim s = "" then (
          st.tg <- false;
          Lwt.return (Some "speak, priest!")
        ) else Lwt.return None)
@@ -25,7 +25,7 @@ let cmd_tg (st:state) =
   Command.make_simple ~descr:"be quiet now, child!" ~prio:15
     ~cmd:"tg"
     (fun _msg s ->
-       if String.trim s = "" then (
+       if not st.tg && String.trim s = "" then (
          st.tg <- true;
          Lwt.return (Some "")
        ) else Lwt.return None)
