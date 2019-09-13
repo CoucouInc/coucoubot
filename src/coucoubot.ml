@@ -1,5 +1,3 @@
-
-
 module C = Calculon
 module CW = Calculon_web
 module CE = Calculon_extras
@@ -18,6 +16,7 @@ let all_ : C.Plugin.t list = [
   Plugin_choice.plugin;
   Plugin_misc.plugin;
   CR.make_plugin ();
+  Plugin_tg.plugin;
 ]
 
 let config = {
