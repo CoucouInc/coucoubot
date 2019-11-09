@@ -1,20 +1,19 @@
 (** {1 Commands querying the Web} *)
 
 open Calculon
-open Cohttp_lwt_unix
 open Lwt.Infix
 
 let cancer_uri =
   Uri.of_string "https://raw.githubusercontent.com/CoucouInc/lalalaliste/master/cancer.txt"
+
+let get_uri = Calculon_web.Plugin_web.get_body
 
 let cmd_cancer =
   Command.make_simple
     ~prio:10 ~cmd:"cancer" ~descr:"lookup in the abyss of bad videos"
     (fun _ s ->
        Log.logf "!cancer %S (now querying content)" s;
-       Client.get cancer_uri >>= fun (c, body) ->
-       Log.logf "http response: %s" @@ Format.asprintf "%a@?" Response.pp_hum c;
-       Cohttp_lwt.Body.to_string body >>= fun body ->
+       get_uri cancer_uri >>= fun body ->
        Log.logf "got cancer page (%d bytes)" @@ String.length body;
        let fmt_link (title, url) = title ^ ":" ^ url in
        let links =
