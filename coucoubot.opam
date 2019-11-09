@@ -18,9 +18,6 @@ depends: [
     "calculon-web"
     "calculon-redis"
     "lwt"
-    "sequence"
-    "irc-client" { >= "0.6" }
-    "irc-client-tls"
     "containers"
     "odoc" {with-doc}
 ]
