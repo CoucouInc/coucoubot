@@ -14,8 +14,8 @@ depends: [
     "base-bytes"
     "base-unix"
     "result"
-    "calculon"
-    "calculon-web"
+    "calculon" { >= "0.5" & < "0.6" }
+    "calculon-web" { >= "0.5" & < "0.6" }
     "calculon-redis"
     "lwt"
     "containers"
