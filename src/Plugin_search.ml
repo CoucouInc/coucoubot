@@ -30,6 +30,9 @@ let cmd_search state =
            Lwt.return @@ Some (Printf.sprintf "%s %s> %s" date author msg)
          | Ok [] -> Lwt.return (Some "nothing found")
          | Ok _ -> assert false
+         | exception e ->
+           Log.logf "error in query: %s" (Printexc.to_string e);
+           Lwt.return_none
          | Error e ->
            Log.logf "error in query: %s" (Sqlite3.Rc.to_string e);
            Lwt.return_none
@@ -67,6 +70,8 @@ let on_message state _ msg =
                    msg.nick msg.message date
            with
            | Ok () -> ()
+           | exception e ->
+             Log.logf "cannot insert into DB: %s" (Printexc.to_string e);
            | Error e ->
              Log.logf "cannot insert log into DB: %s" (Sqlite3.Rc.to_string e));
       Lwt.return ()
