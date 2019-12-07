@@ -51,8 +51,11 @@ let of_json _actions _ =
     Log.logf "error when opening db %S: %s" file (Printexc.to_string e);
     Lwt.return @@ Error "cannot open DB"
 
-let to_json {db} =
-  ignore (Sqlite3.db_close db : bool); None
+let to_json _ = None
+
+let stop {db} =
+  ignore (Sqlite3.db_close db : bool);
+  Lwt.return()
 
 (* update logs *)
 let on_message state _ msg =
@@ -83,6 +86,6 @@ let plugin =
   Plugin.stateful
     ~name:"search"
     ~on_msg
-    ~of_json ~to_json
+    ~of_json ~to_json ~stop
     ~commands
     ()
