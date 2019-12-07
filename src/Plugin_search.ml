@@ -13,9 +13,9 @@ type state = {
 let cmd_search state =
   Command.make_simple
     ~descr:"search in logs sneakily" ~cmd:"nsa" ~prio:10
-    (fun _msg s ->
+    (fun msg s ->
        let s = String.trim s in
-       if s = "" then Lwt.return_none
+       if s = "" || not (Core.is_chan msg.Core.to_) then Lwt.return_none
        else (
          match Db.exec state.db
                  "select author,date,msg from irc where msg match ?
@@ -50,8 +50,8 @@ let to_json {db} =
 (* update logs *)
 let on_message state _ msg =
   match Core.privmsg_of_msg msg with
-    | None -> Lwt.return_unit
-    | Some msg ->
+    | Some msg when Core.is_chan msg.Core.to_ ->
+      (* log only public messages *)
       let pp_date out () =
         ISO8601.Permissive.pp_format out "%Y-%M-%D %h:%m:%s" (Unix.gettimeofday()) 0.
       in
@@ -66,6 +66,7 @@ let on_message state _ msg =
            | Error e ->
              Log.logf "cannot insert log into DB: %s" (Sqlite3.Rc.to_string e));
       Lwt.return ()
+    | _ -> Lwt.return_unit
 
 let plugin =
   let commands st = [ cmd_search st ]
