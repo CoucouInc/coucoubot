@@ -21,6 +21,7 @@ let cmd_search state =
        ) else (
          match Db.exec state.db
                  "select author,date,msg from irc where msg match ?
+                 and not msg like '!nsa%'
                  order by random() limit 1;"
                  ~ty:Db.Ty.(p1 text, p3 text text text, mkp3)
                  s ~f:Db.Cursor.to_list
@@ -52,8 +53,8 @@ let to_json {db} =
 (* update logs *)
 let on_message state _ msg =
   match Core.privmsg_of_msg msg with
-    | Some msg when Core.is_chan msg.Core.to_ ->
-      (* log only public messages *)
+    | Some msg when Core.is_chan msg.Core.to_ && not (CCString.prefix ~pre:"!" msg.message) ->
+      (* log only public messages that are not commands *)
       let pp_date out () =
         ISO8601.Permissive.pp_format out "%Y-%M-%D %h:%m:%s" (Unix.gettimeofday()) 0.
       in
