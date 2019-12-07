@@ -31,10 +31,10 @@ let cmd_search state =
          | Ok [] -> Lwt.return (Some "nothing found")
          | Ok _ -> assert false
          | exception e ->
-           Log.logf "error in query: %s" (Printexc.to_string e);
+           Printf.eprintf "exn in query:\n%s\n%!" (Printexc.to_string e);
            Lwt.return_none
          | Error e ->
-           Log.logf "error in query: %s" (Sqlite3.Rc.to_string e);
+           Printf.eprintf "error in query: %s\n%!" (Sqlite3.Rc.to_string e);
            Lwt.return_none
        )
     )
@@ -71,9 +71,9 @@ let on_message state _ msg =
            with
            | Ok () -> ()
            | exception e ->
-             Log.logf "cannot insert into DB: %s" (Printexc.to_string e);
+             Printf.eprintf "cannot insert into DB: exn\n%s\n%!" (Printexc.to_string e);
            | Error e ->
-             Log.logf "cannot insert log into DB: %s" (Sqlite3.Rc.to_string e));
+             Printf.eprintf "cannot insert log into DB: %s\n%!" (Sqlite3.Rc.to_string e));
       Lwt.return ()
     | _ -> Lwt.return_unit
 
