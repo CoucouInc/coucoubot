@@ -15,8 +15,10 @@ let cmd_search state =
     ~descr:"search in logs sneakily" ~cmd:"nsa" ~prio:10
     (fun msg s ->
        let s = String.trim s in
-       if s = "" || not (Core.is_chan msg.Core.to_) then Lwt.return_none
-       else (
+       if s = "" then Lwt.return_none
+       else if not (Core.is_chan msg.Core.to_) then (
+         Lwt.return_some "accountability requires questions be asked on a public channel."
+       ) else (
          match Db.exec state.db
                  "select author,date,msg from irc where msg match ?
                  order by random() limit 1;"
