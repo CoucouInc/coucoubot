@@ -3,5 +3,6 @@
   (name coucoubot)
   (public_name coucoubot)
   (flags :standard -warn-error -a+8)
-  (libraries lwt re.perl containers calculon calculon-web calculon.extras calculon-redis)
+  (libraries lwt re.perl containers calculon calculon-web sqlite3_utils
+             calculon.extras calculon-redis ISO8601)
 )

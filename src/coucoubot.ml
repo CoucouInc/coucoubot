@@ -17,6 +17,7 @@ let all_ : C.Plugin.t list = [
   Plugin_misc.plugin;
   CR.make_plugin ();
   Plugin_tg.plugin;
+  Plugin_search.plugin;
 ]
 
 let config = {

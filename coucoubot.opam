@@ -18,6 +18,7 @@ depends: [
     "calculon-web" { >= "0.5" & < "0.6" }
     "calculon-redis"
     "lwt"
+    "sqlite3_utils"
     "containers"
     "odoc" {with-doc}
 ]
