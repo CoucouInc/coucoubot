@@ -6,6 +6,9 @@ build:
 test: build
 	@dune runtest --no-buffer --force
 
+watch:
+	@dune build @install -w
+
 clean:
 	@dune clean
 

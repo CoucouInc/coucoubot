@@ -44,11 +44,11 @@ let file = "logs.sqlite"
 let of_json _actions _ =
   try
     let db =Sqlite3.db_open file in
-    Log.logf "opened sqlite DB %S" file;
+    Logs.info (fun k->k "opened sqlite DB %S" file);
     Db.setup_timeout ~ms:500 db;
     Lwt.return @@ Ok {db}
   with e ->
-    Log.logf "error when opening db %S: %s" file (Printexc.to_string e);
+    Logs.err (fun k->k "error when opening db %S: %s" file (Printexc.to_string e));
     Lwt.return @@ Error "cannot open DB"
 
 let to_json _ = None
@@ -74,9 +74,9 @@ let on_message state _ msg =
            with
            | Ok () -> ()
            | exception e ->
-             Printf.eprintf "cannot insert into DB: exn\n%s\n%!" (Printexc.to_string e);
+             Logs.err (fun k->k "cannot insert into DB: exn\n%s\n%!" (Printexc.to_string e));
            | Error e ->
-             Printf.eprintf "cannot insert log into DB: %s\n%!" (Sqlite3.Rc.to_string e));
+             Logs.err (fun k->k "cannot insert log into DB: %s\n%!" (Sqlite3.Rc.to_string e)));
       Lwt.return ()
     | _ -> Lwt.return_unit
 

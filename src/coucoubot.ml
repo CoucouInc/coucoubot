@@ -32,6 +32,8 @@ let config = {
 }
 
 let () =
+  Logs.set_reporter (Logs.format_reporter ());
+  Logs.set_level ~all:true (Some Logs.Info);
   try
     (* update with CLI parameters *)
     let config = C.Config.parse config Sys.argv in

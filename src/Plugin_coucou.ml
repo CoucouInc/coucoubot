@@ -4,26 +4,16 @@ open Prelude
 open Containers
 
 module J = Yojson.Safe.Util
-type json = Yojson.Safe.json
-
-type to_tell = {
-  from: string;
-  on_channel: string;
-  msg: string;
-  tell_after: float option; (** optional; not before this deadline (UTC) *)
-}
+type json = Yojson.Safe.t
 
 (* Data for contacts *)
 type contact = {
   coucous : int;
 }
 
-exception Bad_json
-
 let contact_of_json (json: json): contact option =
-  try
-    { coucous = J.to_int_option json |? 0 } |> some
-  with Bad_json | J.Type_error (_, _) -> None
+  try { coucous = J.to_int_option json |? 0 } |> some
+  with J.Type_error (_, _) -> None
 
 let json_of_contact (c: contact): json = `Int c.coucous
 

@@ -12,9 +12,9 @@ let cmd_cancer =
   Command.make_simple
     ~prio:10 ~cmd:"cancer" ~descr:"lookup in the abyss of bad videos"
     (fun _ s ->
-       Log.logf "!cancer %S (now querying content)" s;
+       Logs.debug (fun k->k "!cancer %S (now querying content)" s);
        get_uri cancer_uri >>= fun body ->
-       Log.logf "got cancer page (%d bytes)" @@ String.length body;
+       Logs.debug (fun k->k  "got cancer page (%d bytes)" @@ String.length body);
        let fmt_link (title, url) = title ^ ":" ^ url in
        let links =
          CCString.Split.list_cpy ~by:"\n" body
@@ -25,7 +25,7 @@ let cmd_cancer =
          match String.trim s with
            | "" -> links
            | search ->
-             Log.logf "cancer: lookup with query %S" search;
+             Logs.debug (fun k->k  "cancer: lookup with query %S" search);
              let re = Re.Perl.compile_pat ~opts:[`Caseless] search in
              CCList.filter_map
                (fun (title, url) ->
@@ -33,11 +33,11 @@ let cmd_cancer =
                links
        in
        if links_with_search = [] then (
-         Log.logf "cancer: nothing found";
+         Logs.debug (fun k->k  "cancer: nothing found");
          Lwt.return_none
        ) else (
          let message = fmt_link @@ Prelude.random_l links_with_search in
-         Log.logf "cancer: picked %S" message;
+         Logs.debug (fun k->k "cancer: picked %S" message);
          Lwt.return (Some message)
        )
     )
