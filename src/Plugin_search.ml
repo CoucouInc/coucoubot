@@ -20,7 +20,7 @@ let cmd_search state =
          Lwt.return_some "accountability requires questions be asked on a public channel."
        ) else (
          match Db.exec state.db
-                 "select author,date,msg from irc where msg match ?
+                 "select author,date,msg from irc where irc match ?
                  and not msg like '!nsa%'
                  order by random() limit 1;"
                  ~ty:Db.Ty.(p1 text, p3 text text text, mkp3)
