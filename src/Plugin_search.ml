@@ -42,6 +42,7 @@ let of_json _actions _ =
   try
     let db =Sqlite3.db_open file in
     Log.logf "opened sqlite DB %S" file;
+    Db.setup_timeout ~ms:500 db;
     Lwt.return @@ Ok {db}
   with e ->
     Log.logf "error when opening db %S: %s" file (Printexc.to_string e);
