@@ -23,6 +23,7 @@ let all_ : C.Plugin.t list = [
 let config = {
   C.Config.default with
   C.Config.
+  log_level=Logs.Info;
   server = "irc.freenode.net";
   port = 7000;
   username = "coucoubot";
@@ -33,10 +34,11 @@ let config = {
 
 let () =
   Logs.set_reporter (Logs.format_reporter ());
-  Logs.set_level ~all:true (Some Logs.Info);
   try
     (* update with CLI parameters *)
     let config = C.Config.parse config Sys.argv in
+    Logs.set_level ~all:true (Some config.C.Config.log_level);
+    Logs.info (fun k->k"start coucoubot");
     C.Run_main.main config all_ |> Lwt_main.run
   with
     | Arg.Help msg -> print_endline msg
