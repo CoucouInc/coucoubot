@@ -2,6 +2,7 @@
 (executable
   (name coucoubot)
   (public_name coucoubot)
+  (modes native)
   (flags :standard -warn-error -a+8)
   (libraries lwt re.perl containers calculon calculon-web sqlite3_utils
              calculon.extras ISO8601 logs))
