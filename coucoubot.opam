@@ -16,7 +16,6 @@ depends: [
     "result"
     "calculon" { >= "0.5" & < "0.7" }
     "calculon-web" { >= "0.5" & < "0.7" }
-    "calculon-redis"
     "lwt"
     "sqlite3_utils"
     "containers"

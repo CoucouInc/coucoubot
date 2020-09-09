@@ -1,7 +1,6 @@
 module C = Calculon
 module CW = Calculon_web
 module CE = Calculon_extras
-module CR = Calculon_redis
 
 let all_ : C.Plugin.t list = [
   C.Plugin_factoids.plugin;
@@ -11,11 +10,9 @@ let all_ : C.Plugin.t list = [
   C.Plugin_history.plugin ~n:200 ~default_len:10 ();
   CW.Plugin_movie.plugin;
   CW.Plugin_web.plugin;
-  CE.Plugin_markcough.plugin;
   Plugin_coucou.plugin;
   Plugin_choice.plugin;
   Plugin_misc.plugin;
-  CR.make_plugin ();
   Plugin_tg.plugin;
   Plugin_search.plugin;
 ]
