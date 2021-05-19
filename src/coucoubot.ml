@@ -21,12 +21,12 @@ let config = {
   C.Config.default with
   C.Config.
   log_level=Logs.Info;
-  server = "irc.freenode.net";
-  port = 7000;
+  server = "irc.libera.chat";
+  port = 6697;
   username = "coucoubot";
   realname = "coucoubot";
   nick = "coucoubot";
-  channel = "#arch-fr-free";
+  channel = "##arch-fr-free";
 }
 
 let () =
