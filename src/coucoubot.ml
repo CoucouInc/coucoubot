@@ -27,6 +27,7 @@ let config = {
   realname = "coucoubot";
   nick = "coucoubot";
   channel = "##arch-fr-free";
+  tls = true;
 }
 
 let () =
