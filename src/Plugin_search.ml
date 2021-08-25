@@ -6,6 +6,12 @@ open Calculon
 
 module Db = Sqlite3_utils
 
+(* schema is:
+[
+   CREATE VIRTUAL TABLE irc using fts3(author, msg, date);
+]
+ *)
+
 type state = {
   db: Db.t;
 }
