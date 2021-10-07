@@ -14,8 +14,8 @@ depends: [
     "base-bytes"
     "base-unix"
     "result"
-    "calculon" { >= "0.5" & < "0.7" }
-    "calculon-web" { >= "0.5" & < "0.7" }
+    "calculon" { >= "0.7" & < "0.8" }
+    "calculon-web" { >= "0.7" & < "0.8" }
     "lwt"
     "sqlite3_utils"
     "containers"
