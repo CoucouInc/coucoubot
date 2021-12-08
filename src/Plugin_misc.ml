@@ -71,7 +71,18 @@ let cmd_how =
          Lwt.return None
     )
 
+let cmd_singe =
+  Command.make ~name:"singe"
+    (fun ~prefix:_ (module C) msg ->
+       if CCString.mem ~sub:"je suis un singe" msg.Core.message then (
+         let target = Core.reply_to msg in
+         if Random.float 1. > 0.9 then (
+           Command.Cmd_match (C.send_privmsg ~target ~message:"ook? ook")
+         ) else Command.Cmd_skip
+       ) else Command.Cmd_skip)
+
 let plugin =
   [ cmd_cancer;
     cmd_how;
+    cmd_singe;
   ] |> Plugin.of_cmds
