@@ -76,7 +76,7 @@ let cmd_singe =
     (fun ~prefix:_ (module C) msg ->
        if CCString.mem ~sub:"je suis un singe" msg.Core.message then (
          let target = Core.reply_to msg in
-         if Random.float 1. > 0.9 then (
+         if Random.float 1. > 0.2 then (
            Command.Cmd_match (C.send_privmsg ~target ~message:"ook? ook")
          ) else Command.Cmd_skip
        ) else Command.Cmd_skip)
