@@ -71,18 +71,37 @@ let cmd_how =
          Lwt.return None
     )
 
-let cmd_singe =
-  Command.make ~name:"singe"
+let cmd_reactions =
+  let l = [
+    "je suis un singe", [["ook? ook"]; ["🙈"]; ["🐵"; "👕"; "👖"]], 0.8;
+    "ook ook", [["je suis un singe"]], 0.7;
+    "jizz", [["https://www.youtube.com/watch?v=VLnWf1sQkjY"]], 0.6;
+    "NFT", [["&stupid mint an NFT for it"]], 0.3;
+    "pieds", [["lickent les feetent 😋"]], 0.2;
+    "rasengan", [["notre grand maitre IRC"]], 0.8;
+    "freenode", [["irc.com, fief de root@ ? :thin"]], 0.6;
+    "https://reddit", [["cc tu connais old.reddit.com?"]], 0.99;
+    "wat", [["WHAT.CD EST DOWN?"]], 0.05;
+  ] in
+
+  Command.make ~name:"reactions"
     (fun ~prefix:_ (module C) msg ->
-       if CCString.mem ~sub:"je suis un singe" msg.Core.message then (
-         let target = Core.reply_to msg in
-         if Random.float 1. > 0.2 then (
-           Command.Cmd_match (C.send_privmsg ~target ~message:"ook? ook")
-         ) else Command.Cmd_skip
-       ) else Command.Cmd_skip)
+       begin match
+           let msg = msg.Core.message in
+           List.find_opt (fun (s,_,_) -> CCString.mem ~sub:s msg) l
+         with
+         | Some (_, [], _) -> assert false
+         | Some (_, choices, proba) ->
+           if Random.float 1. < proba then (
+             let target = Core.reply_to msg in
+             let l = Prelude.random_l choices in
+             Command.Cmd_match (C.send_privmsg_l ~target ~messages:l)
+           ) else Command.Cmd_skip
+         | None -> Command.Cmd_skip
+       end)
 
 let plugin =
   [ cmd_cancer;
     cmd_how;
-    cmd_singe;
+    cmd_reactions;
   ] |> Plugin.of_cmds
