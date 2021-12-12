@@ -74,20 +74,35 @@ let cmd_how =
 let cmd_reactions =
   let l = [
     "je suis un singe", [["ook? ook"]; ["🙈"]; ["🐵"; "👕"; "👖"]], 0.8;
-    "ook ook", [["je suis un singe"]], 0.7;
+    "ook ook", [["je suis un singe"];["tu es un singe‽"]], 0.7;
     "jizz", [["https://www.youtube.com/watch?v=VLnWf1sQkjY"]], 0.6;
     "NFT", [["&stupid mint an NFT for it"]], 0.3;
     "pieds", [["lickent les feetent 😋"]], 0.2;
+    "feetent", [["👅🦶✨"]], 0.6;
+    "la dutch", [["🏩"]], 0.1;
+    "la migros", [["sah le gruyère suisse 🧀🇨🇭"]], 0.3;
+    "jpp jpp", [["kouraj bb 💞"]], 0.6;
+    "golem", [["gothéorème ◼️"]], 0.1;
+    "en sueur", [["en sueur2sueur"]], 0.1;
+    "choppé le covid", [["🦠¬💉 ⇒ PLS bb :-("]], 0.4;
+    "wikifeet", [["👀🦶🤑"]], 0.6;
+    "vocaroo", [["le guide du vocaroo tard?"]], 0.5;
+    "yaourt", [["goûte mon yaourt aux 🍒"]], 0.1;
+    "crypto", [["godecoin to the moon 🍆🍑"]], 0.6;
+    "va sortir", [["go bar chrétien"]], 0.2;
+    "astuce", [["go fiole d'estus"]], 0.1;
     "rasengan", [["notre grand maitre IRC"]], 0.8;
     "freenode", [["irc.com, fief de root@ ? :thin"]], 0.6;
     "https://reddit", [["cc tu connais old.reddit.com?"]], 0.99;
     "wat", [["WHAT.CD EST DOWN?"]], 0.05;
-  ] in
+    "ladurée", [["mais bon, il parait qu'ils sont bons"]], 0.7;
+  ] |> List.map (fun (s,l,p) -> String.uncapitalize_ascii s,l,p)
+  in
 
   Command.make ~name:"reactions"
     (fun ~prefix:_ (module C) msg ->
        begin match
-           let msg = msg.Core.message in
+           let msg = String.uncapitalize_ascii msg.Core.message in
            List.find_opt (fun (s,_,_) -> CCString.mem ~sub:s msg) l
          with
          | Some (_, [], _) -> assert false
