@@ -88,14 +88,14 @@ let cmd_reactions =
     "wikifeet", [["👀🦶🤑"]], 0.6;
     "vocaroo", [["le guide du vocaroo tard?"]], 0.5;
     "yaourt", [["goûte mon yaourt aux 🍒"]], 0.1;
-    "crypto", [["godecoin to the moon 🍆🍑"]], 0.6;
+    "crypto", [["godecoin to the moon 🍆🍑"]], 0.01;
     "va sortir", [["go bar chrétien"]], 0.2;
     "astuce", [["go fiole d'estus"]], 0.1;
     "rasengan", [["notre grand maitre IRC"]], 0.8;
     "freenode", [["irc.com, fief de root@ ? :thin"]], 0.6;
     "https://reddit", [["cc tu connais old.reddit.com?"]], 0.99;
     "wat", [["WHAT.CD EST DOWN?"]], 0.05;
-    "ladurée", [["mais bon, il parait qu'ils sont bons"]], 0.7;
+    "ladurée", [["mais bon, il parait qu'ils sont bons"]], 0.3;
   ] |> List.map (fun (s,l,p) -> String.uncapitalize_ascii s,l,p)
   in
 
