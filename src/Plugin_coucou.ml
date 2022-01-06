@@ -78,7 +78,7 @@ let cmd_coucou state =
          let nick = if String.equal s "" then msg.Core.nick else s in
          let coucou_count = (data state nick).coucous in
          let message =
-           Printf.sprintf "%s est un coucouteur niveau %d"
+           Printf.sprintf "%s est un·e coucouteur niveau %d"
              nick coucou_count
          in
          Lwt.return (Some message)
