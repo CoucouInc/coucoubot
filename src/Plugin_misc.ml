@@ -93,7 +93,7 @@ let cmd_reactions =
     "rasengan", [["notre grand maitre IRC"]], 0.01;
     "freenode", [["irc.com, fief de root@ ? :thin"]], 0.01;
     "https://reddit", [["cc tu connais old.reddit.com?"]], 0.5;
-    "wat", [["WHAT.CD EST DOWN?"]], 0.05;
+    "what.cd", [["WHAT.CD EST DOWN?"]], 0.05;
     "ladurée", [["mais bon, il parait qu'ils sont bons"]], 0.1;
   ] |> List.map (fun (s,l,p) -> String.uncapitalize_ascii s,l,p)
   in
