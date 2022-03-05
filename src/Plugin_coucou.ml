@@ -1,55 +1,28 @@
 
 open Calculon
-open Prelude
+open Calculon.DB_utils
 open Containers
 
-module J = Yojson.Safe.Util
-type json = Yojson.Safe.t
+type t = DB.db
 
-(* Data for contacts *)
-type contact = {
-  coucous : int;
-}
-
-let contact_of_json (json: json): contact option =
-  try { coucous = J.to_int_option json |? 0 } |> some
-  with J.Type_error (_, _) -> None
-
-let json_of_contact (c: contact): json = `Int c.coucous
-
-(* Contacts db *)
-
-type t = contact StrMap.t
-
-type state = {
-  actions: Plugin.action_callback;
-  mutable map: t;
-}
-
-let write_db (db:state) =
-  Signal.Send_ref.send db.actions Plugin.Require_save
-
-let is_contact state nick = StrMap.mem nick state.map
-
-let set_data state ?(force_sync = true) nick contact =
-  state.map <- StrMap.add nick contact state.map;
-  if force_sync then Lwt.async (fun () -> write_db state)
-
-let new_contact state nick =
-  if not (is_contact state nick) then
-    set_data state nick {
-      coucous = 0;
-    }
-
-let data state nick =
-  if not @@ is_contact state nick then new_contact state nick;
-  StrMap.find nick state.map
+let prepare_db (self:t) : unit =
+  DB.exec self
+    {| CREATE TABLE IF NOT EXISTS
+        coucou(name TEXT NOT NULL,
+               count INTEGER NOT NULL,
+               UNIQUE (name) ON CONFLICT FAIL
+               );
+    |} |> check_db_ self;
+  DB.exec self
+    {| CREATE INDEX IF NOT EXISTS idx_coucou on coucou(name); |}
+    |> check_db_ self;
+  ()
 
 (* plugin *)
 
 (* Update coucous *)
 let is_coucou msg =
-  contains msg (Re.Perl.compile_pat "[^!]\\bcoucou\\b")
+  Prelude.contains msg (Re.Perl.compile_pat "[^!]\\bcoucou\\b")
   ||
   CCString.prefix ~pre:"coucou" msg
 
@@ -61,14 +34,36 @@ let () =
   assert (not (is_coucou "!coucou yolo"));
   ()
 
-let shift_coucou ~by state nick =
-  let d = data state nick in
-  set_data state ~force_sync:false nick {coucous = d.coucous + by}
+let get_count (self:t) nick : int =
+  let@ () = wrap_failwith "coucou.get" in
+  let@ stmt =
+    with_stmt self
+      {| SELECT (SELECT count FROM coucou WHERE name=?) |}
+  in
+  DB.bind_text stmt 1 nick |> check_db_ self;
+  let rc = DB.step stmt in
+  check_db_ self rc;
+  match rc with
+  | DB.Rc.DONE -> 0
+  | _ -> DB.column_int stmt 0
+
+let shift_coucou ~by (self:t) nick : unit =
+  let@ () = wrap_failwith "coucou.shift" in
+  let@ stmt =
+    with_stmt self
+      {| INSERT INTO coucou(name, count) VALUES(?1, ?2)
+         ON CONFLICT(name) DO
+         UPDATE SET count = count + ?2;
+      |}
+  in
+  DB.bind_text stmt 1 nick |> check_db_ self;
+  DB.bind_int stmt 2 by |> check_db_ self;
+  DB.step stmt |> check_db_ self
 
 let incr_coucou = shift_coucou ~by:1
 let decr_coucou = shift_coucou ~by:~-1
 
-let cmd_coucou state =
+let cmd_coucou (self:t) =
   Command.make_simple
     ~descr:"increment coucou level" ~cmd:"coucou" ~prio:10
     (fun msg s ->
@@ -76,7 +71,7 @@ let cmd_coucou state =
        if String.contains s ' ' then Lwt.return_none
        else (
          let nick = if String.equal s "" then msg.Core.nick else s in
-         let coucou_count = (data state nick).coucous in
+         let coucou_count = get_count self nick in
          let message =
            Printf.sprintf "%s est un·e coucouteur niveau %d"
              nick coucou_count
@@ -85,38 +80,16 @@ let cmd_coucou state =
        )
     )
 
-
-let of_json actions = function
-  | None ->
-    Lwt_err.return {actions; map=StrMap.empty}
-  | Some j ->
-    let map = match j with
-      | `Assoc l ->
-        l
-        |> CCList.filter_map (fun (k, j) ->
-          Option.(contact_of_json j >>= fun c -> Some (k, c)))
-        |> StrMap.of_list
-      | _ -> StrMap.empty
-    in
-    Lwt_err.return {actions; map}
-
-let to_json (db:state) =
-  let json = `Assoc (
-    StrMap.to_list db.map
-    |> List.map (fun (k, c) -> (k, json_of_contact c))
-  ) in
-  Some json
-
 (* update coucou *)
-let on_message state _ msg =
+let on_message (self:t) _ msg =
   match Core.privmsg_of_msg msg with
     | None -> Lwt.return_unit
     | Some msg ->
       let target = Core.reply_to msg in
       if is_coucou msg.Core.message then (
         if Core.is_chan target
-        then incr_coucou state msg.Core.nick
-        else decr_coucou state msg.Core.nick
+        then incr_coucou self msg.Core.nick
+        else decr_coucou self msg.Core.nick
       );
       Lwt.return ()
 
@@ -125,10 +98,8 @@ let plugin =
     [ cmd_coucou state;
     ]
   in
-  Plugin.stateful
-    ~name:"coucou"
-    ~on_msg:(fun st -> [on_message st])
-    ~of_json ~to_json
+  Plugin.db_backed
+    ~on_msg:(fun st -> [on_message st]) ~prepare_db
     ~commands
     ()
 

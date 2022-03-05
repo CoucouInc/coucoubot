@@ -11,16 +11,7 @@
     by callbacks defined in {!Social} (thanks to {!Signal.on}).
 *)
 
-(* Data for contacts *)
-type contact = {
-  coucous : int;
-}
-
 type t
-
-type state
-
-val data : state -> string -> contact
 
 val plugin : Calculon.Plugin.t
 

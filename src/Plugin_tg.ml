@@ -30,8 +30,7 @@ let cmd_tg (st:state) =
          Lwt.return (Some "")
        ) else Lwt.return None)
 
-let of_json _actions _js =
-  Lwt.return (Ok { tg=false; })
+let of_json _actions _js = Ok { tg=false; }
 
 let to_json _ = None
 

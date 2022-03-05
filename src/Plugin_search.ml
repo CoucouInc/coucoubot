@@ -52,10 +52,10 @@ let of_json _actions _ =
     let db =Sqlite3.db_open file in
     Logs.info (fun k->k "opened sqlite DB %S" file);
     Db.setup_timeout ~ms:500 db;
-    Lwt.return @@ Ok {db}
+    Ok {db}
   with e ->
     Logs.err (fun k->k "error when opening db %S: %s" file (Printexc.to_string e));
-    Lwt.return @@ Error "cannot open DB"
+    Error "cannot open DB"
 
 let to_json _ = None
 
