@@ -27,7 +27,7 @@ let cmd_tg (st:state) =
     (fun _msg s ->
        if not st.tg && String.trim s = "" then (
          st.tg <- true;
-         Lwt.return (Some "")
+         Lwt.return (Some "ui ok je me tais")
        ) else Lwt.return None)
 
 let of_json _actions _js =
