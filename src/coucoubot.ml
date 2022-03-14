@@ -13,7 +13,6 @@ let all_ : C.Plugin.t list = [
   Plugin_coucou.plugin;
   Plugin_choice.plugin;
   Plugin_misc.plugin;
-  Plugin_tg.plugin;
   Plugin_search.plugin;
 ]
 
