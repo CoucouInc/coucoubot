@@ -68,7 +68,7 @@ let cmd_coucou (self:t) =
     ~descr:"increment coucou level" ~cmd:"coucou" ~prio:10
     (fun msg s ->
        let s = String.trim s in
-       if String.contains s ' ' then Lwt.return_none
+       if String.contains s ' ' then None
        else (
          let nick = if String.equal s "" then msg.Core.nick else s in
          let coucou_count = get_count self nick in
@@ -76,22 +76,21 @@ let cmd_coucou (self:t) =
            Printf.sprintf "%s est un·e coucouteur niveau %d"
              nick coucou_count
          in
-         Lwt.return (Some message)
+         Some message
        )
     )
 
 (* update coucou *)
 let on_message (self:t) _ msg =
   match Core.privmsg_of_msg msg with
-    | None -> Lwt.return_unit
+    | None -> ()
     | Some msg ->
       let target = Core.reply_to msg in
       if is_coucou msg.Core.message then (
         if Core.is_chan target
         then incr_coucou self msg.Core.nick
         else decr_coucou self msg.Core.nick
-      );
-      Lwt.return ()
+      )
 
 let plugin =
   let commands state =
