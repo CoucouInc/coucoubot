@@ -27,6 +27,7 @@ let config = {
   nick = "coucoubot";
   channel = "##arch-fr-free";
   tls = true;
+  db_file="coucoubot.db";
 }
 
 let () =

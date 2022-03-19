@@ -18,6 +18,6 @@ doc:
 
 backups:
 	#@echo "doing backups of all .json files…"
-	./tools/save.sh *.json
+	./tools/save.sh coucoubot.db
 
 .PHONY: backups
