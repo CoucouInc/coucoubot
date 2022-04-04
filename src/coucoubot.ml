@@ -25,7 +25,7 @@ let config = {
   username = "coucoubot";
   realname = "coucoubot";
   nick = "coucoubot";
-  channel = "##arch-fr-free";
+  channels = ["##arch-fr-free"];
   tls = true;
   db_file="coucoubot.db";
 }
