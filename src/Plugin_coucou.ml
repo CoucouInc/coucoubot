@@ -88,10 +88,16 @@ let on_message (self:t) _ msg =
     | None -> Lwt.return_unit
     | Some msg ->
       let target = Core.reply_to msg in
-      if is_coucou msg.Core.message then (
-        if Core.is_chan target
-        then incr_coucou self msg.Core.nick
-        else decr_coucou self msg.Core.nick
+      Lwt.async (fun () ->
+        if is_coucou msg.Core.message then (
+          try
+            if Core.is_chan target
+            then incr_coucou self msg.Core.nick
+            else decr_coucou self msg.Core.nick
+          with Failure e ->
+            Logs.debug (fun k->k "failed to change coucou: %s" e)
+        );
+        Lwt.return ()
       );
       Lwt.return ()
 
