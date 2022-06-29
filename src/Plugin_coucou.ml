@@ -1,8 +1,10 @@
 
 open Calculon
+open Calculon_common
 open Calculon.DB_utils
 open Containers
 
+let (let@) f x = f x
 type t = DB.db
 
 let prepare_db (self:t) : unit =

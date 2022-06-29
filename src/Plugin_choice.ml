@@ -75,9 +75,9 @@ let cmds_choice : Command.t list =
   let cmd_function choice_function result_message failure_message =
     (fun _ str ->
        let choice_opt = String.trim str
-         |> extract_choices supported_separators |> map_opt choice_function in
-      let msg = choice_opt |> map_opt (fun s -> result_message ^ s) |? failure_message in
-      Lwt.return (some msg)
+         |> extract_choices supported_separators |> Option.map choice_function in
+      let msg = choice_opt |> Option.map (fun s -> result_message ^ s) |? failure_message in
+      Lwt.return (Option.some msg)
     )
   in
   (* easily define a choice command *)
