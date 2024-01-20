@@ -1,23 +1,23 @@
-
 open Calculon
 open Calculon_common
 open Calculon.DB_utils
 open Containers
 
-let (let@) f x = f x
+let ( let@ ) f x = f x
+
 type t = DB.db
 
-let prepare_db (self:t) : unit =
+let prepare_db (self : t) : unit =
   DB.exec self
     {| CREATE TABLE IF NOT EXISTS
         coucou(name TEXT NOT NULL,
                count INTEGER NOT NULL,
                UNIQUE (name) ON CONFLICT FAIL
                ) STRICT;
-    |} |> check_db_ self;
-  DB.exec self
-    {| CREATE INDEX IF NOT EXISTS idx_coucou on coucou(name); |}
-    |> check_db_ self;
+    |}
+  |> check_db_ self;
+  DB.exec self {| CREATE INDEX IF NOT EXISTS idx_coucou on coucou(name); |}
+  |> check_db_ self;
   ()
 
 (* plugin *)
@@ -25,8 +25,7 @@ let prepare_db (self:t) : unit =
 (* Update coucous *)
 let is_coucou msg =
   Prelude.contains msg (Re.Perl.compile_pat "[^!]\\bcoucou\\b")
-  ||
-  CCString.prefix ~pre:"coucou" msg
+  || CCString.prefix ~pre:"coucou" msg
 
 let () =
   assert (is_coucou "coucou");
@@ -36,11 +35,10 @@ let () =
   assert (not (is_coucou "!coucou yolo"));
   ()
 
-let get_count (self:t) nick : int =
+let get_count (self : t) nick : int =
   let@ () = wrap_failwith "coucou.get" in
   let@ stmt =
-    with_stmt self
-      {| SELECT (SELECT count FROM coucou WHERE name=?) |}
+    with_stmt self {| SELECT (SELECT count FROM coucou WHERE name=?) |}
   in
   DB.bind_text stmt 1 nick |> check_db_ self;
   let rc = DB.step stmt in
@@ -49,7 +47,7 @@ let get_count (self:t) nick : int =
   | DB.Rc.DONE -> 0
   | _ -> DB.column_int stmt 0
 
-let shift_coucou ~by (self:t) nick : unit =
+let shift_coucou ~by (self : t) nick : unit =
   let@ () = wrap_failwith "coucou.shift" in
   let@ stmt =
     with_stmt self
@@ -65,49 +63,47 @@ let shift_coucou ~by (self:t) nick : unit =
 let incr_coucou = shift_coucou ~by:1
 let decr_coucou = shift_coucou ~by:~-1
 
-let cmd_coucou (self:t) =
-  Command.make_simple
-    ~descr:"increment coucou level" ~cmd:"coucou" ~prio:10
+let cmd_coucou (self : t) =
+  Command.make_simple ~descr:"increment coucou level" ~cmd:"coucou" ~prio:10
     (fun msg s ->
-       let s = String.trim s in
-       if String.contains s ' ' then Lwt.return_none
-       else (
-         let nick = if String.equal s "" then msg.Core.nick else s in
-         let coucou_count = get_count self nick in
-         let message =
-           Printf.sprintf "%s est un·e coucouteur niveau %d"
-             nick coucou_count
-         in
-         Lwt.return (Some message)
-       )
-    )
+      let s = String.trim s in
+      if String.contains s ' ' then
+        Lwt.return_none
+      else (
+        let nick =
+          if String.equal s "" then
+            msg.Core.nick
+          else
+            s
+        in
+        let coucou_count = get_count self nick in
+        let message =
+          Printf.sprintf "%s est un·e coucouteur niveau %d" nick coucou_count
+        in
+        Lwt.return (Some message)
+      ))
 
 (* update coucou *)
-let on_message (self:t) _ msg =
+let on_message (self : t) _ msg =
   match Core.privmsg_of_msg msg with
-    | None -> Lwt.return_unit
-    | Some msg ->
-      let target = Core.reply_to msg in
-      Lwt.async (fun () ->
+  | None -> Lwt.return_unit
+  | Some msg ->
+    let target = Core.reply_to msg in
+    Lwt.async (fun () ->
         if is_coucou msg.Core.message then (
           try
-            if Core.is_chan target
-            then incr_coucou self msg.Core.nick
-            else decr_coucou self msg.Core.nick
+            if Core.is_chan target then
+              incr_coucou self msg.Core.nick
+            else
+              decr_coucou self msg.Core.nick
           with Failure e ->
-            Logs.debug (fun k->k "failed to change coucou: %s" e)
+            Logs.debug (fun k -> k "failed to change coucou: %s" e)
         );
-        Lwt.return ()
-      );
-      Lwt.return ()
+        Lwt.return ());
+    Lwt.return ()
 
 let plugin =
-  let commands state =
-    [ cmd_coucou state;
-    ]
-  in
+  let commands state = [ cmd_coucou state ] in
   Plugin.db_backed
-    ~on_msg:(fun st -> [on_message st]) ~prepare_db
-    ~commands
-    ()
-
+    ~on_msg:(fun st -> [ on_message st ])
+    ~prepare_db ~commands ()

@@ -1,4 +1,3 @@
-
 (** Social: keeps a register "nick -> informations" up-to-date.
     The type {!contact} can be extended to store new informations.
 
@@ -16,5 +15,7 @@ type t
 val plugin : Calculon.Plugin.t
 
 (**/**)
+
 val is_coucou : string -> bool
+
 (**/**)

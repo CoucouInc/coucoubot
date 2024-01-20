@@ -1,4 +1,3 @@
-
 (** {1 Choice plugin} *)
 
 (** Returns a random choice between two entries separated by a certain identifier

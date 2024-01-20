@@ -13,3 +13,5 @@ qtest*
 *_t.*
 .merlin
 *.json
+.env
+coucoubot.db
