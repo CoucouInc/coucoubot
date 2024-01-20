@@ -16,6 +16,10 @@ let all_ : C.Plugin.t list = [
   Plugin_search.plugin;
 ]
 
+let channels =
+  try Sys.getenv "CHANNELS" |> String.split_on_char ','
+  with _ -> ["##arch-fr-free"]
+
 let config = {
   C.Config.default with
   C.Config.
@@ -25,7 +29,7 @@ let config = {
   username = "coucoubot";
   realname = "coucoubot";
   nick = "coucoubot";
-  channel = "##arch-fr-free";
+  channels;
   tls = true;
   db_file="coucoubot.db";
 }
