@@ -38,7 +38,7 @@ let config =
   }
 
 let setup_httpd ~http_port () : H.t * Prometheus.Registry.t =
-  let server = H.create ~port:http_port () in
+  let server = H.create ~addr:"0.0.0.0" ~port:http_port () in
 
   let reg = Prometheus.global in
   Prometheus.instrument_server server reg;
