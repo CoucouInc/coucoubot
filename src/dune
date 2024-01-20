@@ -5,4 +5,5 @@
   (modes native)
   (flags :standard -warn-error -a+8)
   (libraries lwt re.perl containers calculon calculon-web sqlite3_utils
-             yojson calculon.extras ISO8601 logs))
+             yojson tiny_httpd tiny_httpd.prometheus threads
+             calculon.extras ISO8601 logs))
