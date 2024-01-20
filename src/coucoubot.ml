@@ -90,7 +90,7 @@ let () =
     Calculon.Signal.on' C.messages (fun (msg : Irc_message.t) ->
         (match msg.command with
         | PRIVMSG (target, _) ->
-          (match List.assq_opt target msg_counters with
+          (match List.assoc_opt target msg_counters with
           | None -> ()
           | Some c -> Prometheus.Counter.incr c)
         | _ -> ());
