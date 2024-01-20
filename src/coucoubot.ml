@@ -67,9 +67,10 @@ let () =
   Logs.set_level ~all:true (Some config.C.Config.log_level);
   Logs.info (fun k -> k "start coucoubot");
 
-  Logs.info (fun k -> k "listening on port %d" http_port);
-
   let http_server, prom = setup_httpd ~http_port () in
+
+  Logs.info (fun k ->
+      k "listening on %s:%d" (H.addr http_server) (H.port http_server));
   let msg_counters =
     List.map
       (fun c ->
