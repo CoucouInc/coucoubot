@@ -3,6 +3,9 @@ all: build test
 build:
 	@dune build @install
 
+build-docker:
+	@docker build . -f Dockerfile.server
+
 test: build
 	@dune runtest --no-buffer --force
 
