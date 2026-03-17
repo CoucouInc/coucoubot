@@ -4,7 +4,7 @@ build:
 	@dune build @install
 
 build-docker:
-	@docker build . -f Dockerfile.server
+	@docker build . -f Dockerfile.server -t coucoubot:latest
 
 test: build
 	@dune runtest --no-buffer --force

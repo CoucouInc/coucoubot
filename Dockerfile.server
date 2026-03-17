@@ -8,9 +8,14 @@ COPY dune-project Makefile *.opam .gitignore ./
 RUN opam install re iter mtime
 RUN opam install . --deps-only -y
 
+COPY ./vendor/ ./vendor/
+RUN opam install ./vendor/calculon/calculon.opam ./vendor/calculon/calculon-web.opam --deps-only -y
+
 COPY src/ ./src/
 RUN opam exec -- dune build @install
 
-FROM debian13 AS runtime
+FROM debian:trixie-slim AS runtime
+COPY --from=build /usr/lib64/ /usr/lib64/
+COPY --from=build /usr/lib/x86_64-linux-gnu/* /usr/lib/x86_64-linux-gnu/
 COPY --from=build /home/opam/_build/default/src/coucoubot.exe coucoubot
 ENTRYPOINT ./coucoubot
