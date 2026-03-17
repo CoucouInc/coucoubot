@@ -21,6 +21,7 @@ depends: [
     "tiny_httpd"
     "sqlite3_utils"
     "containers"
+    "ISO8601"
     "odoc" {with-doc}
 ]
 tags: [ "coucou" "aop" ]
