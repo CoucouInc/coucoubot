@@ -18,6 +18,7 @@ depends: [
     "calculon-web" { >= "0.8" & < "0.9" }
     "lwt"
     "mtime"
+    "iter"  # for calculon.extras
     "tiny_httpd"
     "sqlite3_utils"
     "containers"
