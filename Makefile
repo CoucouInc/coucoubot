@@ -12,6 +12,12 @@ test: build
 watch:
 	@dune build @install -w
 
+format:
+	@dune build $(DUNE_OPTS) @fmt --auto-promote
+
+format-check:
+	@dune build $(DUNE_OPTS) @fmt --display=quiet
+
 clean:
 	@dune clean
 
