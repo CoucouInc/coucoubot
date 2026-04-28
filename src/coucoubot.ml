@@ -34,6 +34,7 @@ let config =
     nick = "coucoubot";
     channels;
     tls = true;
+    check_cert = false;
     db_file = "coucoubot.db";
   }
 
@@ -51,8 +52,8 @@ let make_metrics_plugin msg_counters : C.Plugin.t =
     ~commands:(fun () -> [])
     ~on_msg:(fun () ->
       [
-        fun _core (msg : Irky.Message.t) ->
-          (match msg.command with
+        (fun _core (msg : Irky.Message.t) ->
+          match msg.command with
           | Irky.Message.PRIVMSG (target, _) ->
             (match List.assoc_opt target msg_counters with
             | None -> ()
