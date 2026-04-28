@@ -83,7 +83,7 @@ let cmds_choice : Command.t list =
     let msg =
       choice_opt |> Option.map (fun s -> result_message ^ s) |? failure_message
     in
-    Lwt.return (Option.some msg)
+    Option.some msg
   in
   (* easily define a choice command *)
   let command_make_choice command_name command_descr choice_function

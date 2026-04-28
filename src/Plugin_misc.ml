@@ -1,7 +1,6 @@
 (** {1 Commands querying the Web} *)
 
 open Calculon
-open Lwt.Infix
 
 let cancer_uri =
   Uri.of_string
@@ -13,7 +12,7 @@ let cmd_cancer =
   Command.make_simple ~prio:10 ~cmd:"cancer"
     ~descr:"lookup in the abyss of bad videos" (fun _ s ->
       Logs.debug (fun k -> k "!cancer %S (now querying content)" s);
-      get_uri cancer_uri >>= fun body ->
+      let body = get_uri cancer_uri in
       Logs.debug (fun k -> k "got cancer page (%d bytes)" @@ String.length body);
       let fmt_link (title, url) = title ^ ":" ^ url in
       let links =
@@ -37,11 +36,11 @@ let cmd_cancer =
       in
       if links_with_search = [] then (
         Logs.debug (fun k -> k "cancer: nothing found");
-        Lwt.return_none
+        None
       ) else (
         let message = fmt_link @@ Prelude.random_l links_with_search in
         Logs.debug (fun k -> k "cancer: picked %S" message);
-        Lwt.return (Some message)
+        Some message
       ))
 
 let wikihow_random = "https://www.wikihow.com/Special:Randomizer"
@@ -50,12 +49,11 @@ let cmd_how =
   Command.make_simple ~prio:10 ~cmd:"how" ~descr:"how do I do things??"
     (fun _ _ ->
       Logs.debug (fun k -> k "!how (now querying)");
-      Lwt_preemptive.detach
-        (fun () ->
-          Curly.run ~args:[ "-L" ]
-            Curly.(Request.make ~url:wikihow_random ~meth:`GET ()))
-        ()
-      >>= function
+      match
+        Eio_unix.run_in_systhread (fun () ->
+            Curly.run ~args:[ "-L" ]
+              Curly.(Request.make ~url:wikihow_random ~meth:`GET ()))
+      with
       | Ok { Curly.Response.code; headers; _ } ->
         Logs.debug (fun k ->
             k "how: got answer (code: got %d; expected 302)" code);
@@ -63,15 +61,15 @@ let cmd_how =
           match List.assoc_opt "location" headers with
           | Some url ->
             Logs.debug (fun k -> k "how: found page url: %S" url);
-            Lwt.return (Some url)
+            Some url
           | None ->
             Logs.debug (fun k -> k "how: no 'location' header");
-            Lwt.return None
+            None
         ) else
-          Lwt.return None
+          None
       | Error _e ->
         Logs.debug (fun k -> k "how: curl error");
-        Lwt.return None)
+        None)
 
 let cmd_reactions =
   let l =
@@ -102,7 +100,7 @@ let cmd_reactions =
     |> List.map (fun (s, l, p) -> String.uncapitalize_ascii s, l, p)
   in
 
-  Command.make ~name:"reactions" (fun ~prefix:_ (module C) msg ->
+  Command.make ~name:"reactions" (fun ~prefix:_ core msg ->
       match
         let msg = String.uncapitalize_ascii msg.Core.message in
         List.find_opt (fun (s, _, _) -> CCString.mem ~sub:s msg) l
@@ -112,7 +110,7 @@ let cmd_reactions =
         if Random.float 1. < proba then (
           let target = Core.reply_to msg in
           let l = Prelude.random_l choices in
-          Command.Cmd_match (C.send_privmsg_l ~target ~messages:l)
+          Command.Cmd_match (fun () -> Core.send_privmsg_l core ~target ~messages:l)
         ) else
           Command.Cmd_skip
       | None -> Command.Cmd_skip)

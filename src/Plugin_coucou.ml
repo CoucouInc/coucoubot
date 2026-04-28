@@ -1,9 +1,7 @@
 open Calculon
 open Calculon_common
-open Calculon.DB_utils
+open Calculon.Db_utils
 open Containers
-
-let ( let@ ) f x = f x
 
 type t = DB.db
 
@@ -68,7 +66,7 @@ let cmd_coucou (self : t) =
     (fun msg s ->
       let s = String.trim s in
       if String.contains s ' ' then
-        Lwt.return_none
+        None
       else (
         let nick =
           if String.equal s "" then
@@ -80,27 +78,23 @@ let cmd_coucou (self : t) =
         let message =
           Printf.sprintf "%s est un·e coucouteur niveau %d" nick coucou_count
         in
-        Lwt.return (Some message)
+        Some message
       ))
 
 (* update coucou *)
 let on_message (self : t) _ msg =
   match Core.privmsg_of_msg msg with
-  | None -> Lwt.return_unit
+  | None -> ()
   | Some msg ->
     let target = Core.reply_to msg in
-    Lwt.async (fun () ->
-        if is_coucou msg.Core.message then (
-          try
-            if Core.is_chan target then
-              incr_coucou self msg.Core.nick
-            else
-              decr_coucou self msg.Core.nick
-          with Failure e ->
-            Logs.debug (fun k -> k "failed to change coucou: %s" e)
-        );
-        Lwt.return ());
-    Lwt.return ()
+    if is_coucou msg.Core.message then (
+      try
+        if Core.is_chan target then
+          incr_coucou self msg.Core.nick
+        else
+          decr_coucou self msg.Core.nick
+      with Failure e ->
+        Logs.debug (fun k -> k "failed to change coucou: %s" e))
 
 let plugin =
   let commands state = [ cmd_coucou state ] in

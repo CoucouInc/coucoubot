@@ -46,8 +46,25 @@ let setup_httpd ~http_port () : H.t * Prometheus.Registry.t =
 
   server, reg
 
+let make_metrics_plugin msg_counters : C.Plugin.t =
+  C.Plugin.stateful ~name:"metrics"
+    ~commands:(fun () -> [])
+    ~on_msg:(fun () ->
+      [
+        fun _core (msg : Irky.Message.t) ->
+          (match msg.command with
+          | Irky.Message.PRIVMSG (target, _) ->
+            (match List.assoc_opt target msg_counters with
+            | None -> ()
+            | Some c -> Prometheus.Counter.incr c)
+          | _ -> ());
+      ])
+    ~to_json:(fun () -> None)
+    ~of_json:(fun _ _ -> Ok ())
+    ()
+
 let () =
-  Logs.set_reporter (Logs.format_reporter ());
+  Logs.set_reporter (C.Logfmt_logger.reporter ());
 
   let http_port =
     try int_of_string @@ Sys.getenv "HTTP_PORT" with _ -> 8089
@@ -85,16 +102,10 @@ let () =
     Thread.create (fun () -> H.run_exn http_server) ()
   in
 
-  (* make sure to have metrics for IRC *)
-  let on_init ((module C) : Calculon.Core.t) : unit =
-    Calculon.Signal.on' C.messages (fun (msg : Irc_message.t) ->
-        (match msg.command with
-        | PRIVMSG (target, _) ->
-          (match List.assoc_opt target msg_counters with
-          | None -> ()
-          | Some c -> Prometheus.Counter.incr c)
-        | _ -> ());
-        Lwt.return_unit)
-  in
+  let all_ = all_ @ [ make_metrics_plugin msg_counters ] in
 
-  Lwt_main.run @@ C.Run_main.main ~on_init config all_
+  Eio_main.run @@ fun env ->
+  Eio.Switch.run @@ fun sw ->
+  let net = Eio.Stdenv.net env in
+  let clock = Eio.Stdenv.clock env in
+  C.Run_main.main ~sw ~net ~clock config all_

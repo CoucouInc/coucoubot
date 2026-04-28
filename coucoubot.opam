@@ -16,13 +16,13 @@ depends: [
     "result"
     "calculon" { >= "0.8" & < "0.9" }
     "calculon-web" { >= "0.8" & < "0.9" }
-    "lwt"
+    "eio" { >= "1.0" }
+    "eio_main" { >= "1.0" }
     "mtime"
     "iter"  # for calculon.extras
     "tiny_httpd"
     "sqlite3_utils"
     "containers"
-    "ISO8601"
     "odoc" {with-doc}
 ]
 tags: [ "coucou" "aop" ]

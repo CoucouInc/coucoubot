@@ -16,10 +16,9 @@ let cmd_search state =
     (fun msg s ->
       let s = String.trim s in
       if s = "" then
-        Lwt.return_none
+        None
       else if not (Core.is_chan msg.Core.to_) then
-        Lwt.return_some
-          "accountability requires questions be asked on a public channel."
+        Some "accountability requires questions be asked on a public channel."
       else (
         match
           Db.exec state.db
@@ -30,15 +29,15 @@ let cmd_search state =
             s ~f:Db.Cursor.to_list
         with
         | Ok [ (author, date, msg) ] ->
-          Lwt.return @@ Some (Printf.sprintf "%s %s> %s" date author msg)
-        | Ok [] -> Lwt.return (Some "nothing found")
+          Some (Printf.sprintf "%s %s> %s" date author msg)
+        | Ok [] -> Some "nothing found"
         | Ok _ -> assert false
         | exception e ->
           Printf.eprintf "exn in query:\n%s\n%!" (Printexc.to_string e);
-          Lwt.return_none
+          None
         | Error e ->
           Printf.eprintf "error in query: %s\n%!" (Sqlite3.Rc.to_string e);
-          Lwt.return_none
+          None
       ))
 
 let file = "logs.sqlite"
@@ -55,10 +54,7 @@ let of_json _actions _ =
     Error "cannot open DB"
 
 let to_json _ = None
-
-let stop { db } =
-  ignore (Sqlite3.db_close db : bool);
-  Lwt.return ()
+let stop { db } = ignore (Sqlite3.db_close db : bool)
 
 (* update logs *)
 let on_message state _ msg =
@@ -67,11 +63,11 @@ let on_message state _ msg =
     when Core.is_chan msg.Core.to_ && not (CCString.prefix ~pre:"!" msg.message)
     ->
     (* log only public messages that are not commands *)
-    let pp_date out () =
-      ISO8601.Permissive.pp_format out "%Y-%M-%D %h:%m:%s"
-        (Unix.gettimeofday ()) 0.
+    let date =
+      let now = Ptime_clock.now () in
+      let ((y, mo, d), ((h, m, s), _)) = Ptime.to_date_time now in
+      Printf.sprintf "%04d-%02d-%02d %02d:%02d:%02d" y mo d h m s
     in
-    let date = Format.asprintf "%a@?" pp_date () in
     Db.transact state.db (fun db ->
         match
           Db.exec_no_cursor db "insert into irc values (?,?,?);"
@@ -84,9 +80,8 @@ let on_message state _ msg =
               k "cannot insert into DB: exn\n%s\n%!" (Printexc.to_string e))
         | Error e ->
           Logs.err (fun k ->
-              k "cannot insert log into DB: %s\n%!" (Sqlite3.Rc.to_string e)));
-    Lwt.return ()
-  | _ -> Lwt.return_unit
+              k "cannot insert log into DB: %s\n%!" (Sqlite3.Rc.to_string e)))
+  | _ -> ()
 
 let plugin =
   let commands st = [ cmd_search st ] and on_msg st = [ on_message st ] in
