@@ -1,3 +1,6 @@
 [submodule "vendor/calculon"]
 	path = vendor/calculon
 	url = https://github.com/c-cube/calculon.git
+[submodule "vendor/irky"]
+	path = vendor/irky
+	url = https://github.com/c-cube/irky
