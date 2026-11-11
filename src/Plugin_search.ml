@@ -65,7 +65,7 @@ let on_message state _ msg =
     (* log only public messages that are not commands *)
     let date =
       let now = Ptime_clock.now () in
-      let ((y, mo, d), ((h, m, s), _)) = Ptime.to_date_time now in
+      let (y, mo, d), ((h, m, s), _) = Ptime.to_date_time now in
       Printf.sprintf "%04d-%02d-%02d %02d:%02d:%02d" y mo d h m s
     in
     Db.transact state.db (fun db ->

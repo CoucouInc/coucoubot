@@ -34,13 +34,13 @@ let contact_of_json (json : json) : contact option =
       to_tell =
         member "to_tell"
         |> J.convert_each (fun j ->
-               match J.convert_each J.to_string j with
-               | [ from; on_channel; msg ] ->
-                 { from; on_channel; msg; tell_after = None }
-               | [ from; on_channel; msg; tell_after ] ->
-                 let tell_after = Some (float_of_string tell_after) in
-                 { from; on_channel; msg; tell_after }
-               | _ -> raise Bad_json);
+            match J.convert_each J.to_string j with
+            | [ from; on_channel; msg ] ->
+              { from; on_channel; msg; tell_after = None }
+            | [ from; on_channel; msg; tell_after ] ->
+              let tell_after = Some (float_of_string tell_after) in
+              { from; on_channel; msg; tell_after }
+            | _ -> raise Bad_json);
       coucous = member "coucous" |> J.to_int_option |? 0;
     }
     |> some
@@ -74,7 +74,7 @@ let contacts_of_file file : contact StrMap.t =
   | `Assoc l ->
     CCList.to_seq l
     |> Sequence.filter_map (fun (k, j) ->
-           CCOpt.(contact_of_json j >>= fun c -> Some (k, c)))
+        CCOpt.(contact_of_json j >>= fun c -> Some (k, c)))
     |> StrMap.of_seq
   | exception Sys_error _ -> StrMap.empty
   | _ -> StrMap.empty

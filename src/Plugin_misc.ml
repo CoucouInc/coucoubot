@@ -110,7 +110,8 @@ let cmd_reactions =
         if Random.float 1. < proba then (
           let target = Core.reply_to msg in
           let l = Prelude.random_l choices in
-          Command.Cmd_match (fun () -> Core.send_privmsg_l core ~target ~messages:l)
+          Command.Cmd_match
+            (fun () -> Core.send_privmsg_l core ~target ~messages:l)
         ) else
           Command.Cmd_skip
       | None -> Command.Cmd_skip)

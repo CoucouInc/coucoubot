@@ -94,7 +94,8 @@ let on_message (self : t) _ msg =
         else
           decr_coucou self msg.Core.nick
       with Failure e ->
-        Logs.debug (fun k -> k "failed to change coucou: %s" e))
+        Logs.debug (fun k -> k "failed to change coucou: %s" e)
+    )
 
 let plugin =
   let commands state = [ cmd_coucou state ] in
