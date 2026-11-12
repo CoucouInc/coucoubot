@@ -14,8 +14,8 @@ depends: [
     "base-bytes"
     "base-unix"
     "result"
-    "calculon" { >= "0.8" & < "0.9" }
-    "calculon-web" { >= "0.8" & < "0.9" }
+    "calculon" { >= "0.9" & < "1.0" }
+    "calculon-web" { >= "0.9" & < "1.0" }
     "eio" { >= "1.0" }
     "eio_main" { >= "1.0" }
     "mtime"

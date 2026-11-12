@@ -20,6 +20,8 @@ jobs:
     container: ${{ matrix.container }}
     steps:
       - uses: actions/checkout@v6
-      - run: apt update && opam install -t . --deps-only
+        with:
+          submodules: recursive
+      - run: apt update && opam install -t . ./vendor/calculon/calculon.opam ./vendor/calculon/calculon-web.opam ./vendor/irky/irky.opam ./vendor/irky/irky-eio.opam --deps-only
       - run: opam exec -- dune build @install
 
