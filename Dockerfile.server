@@ -13,4 +13,4 @@ RUN opam exec -- dune build @install
 FROM debian:trixie-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends libsqlite3-0 libssl3t64 ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=build /home/opam/_build/default/src/coucoubot.exe coucoubot
-ENTRYPOINT ./coucoubot
+ENTRYPOINT ["./coucoubot"]
